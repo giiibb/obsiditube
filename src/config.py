@@ -9,7 +9,7 @@ def change_dir_to_root():
     os.chdir(root)
 
 
-def create_session(cached: bool = False) -> Session:
+def create_session(cached: bool = False, cookies: str | None = None) -> Session:
     if not cached:
         session = Session()
     else:
@@ -37,4 +37,6 @@ def create_session(cached: bool = False) -> Session:
             "TE": "trailers",
         }
     )
+    if cookies:
+        session.headers.update({"Cookie": cookies})
     return session

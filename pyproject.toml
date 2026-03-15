@@ -1,12 +1,15 @@
 [project]
-name = "youtube-playlist-to-obsidian-cards"
+name = "obsiditube"
 version = "0.1.0"
-description = "Convert YouTube playlists into Obsidian todo checklists with Auto Card Link previews. Fetches all videos (including continuations) and outputs clean `cardlink` blocks."
+description = "Convert YouTube playlists into Obsidian todo checklists seamlessly via a modern Next.js/FastAPI dashboard."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "requests>=2.32.5",
     "typer>=0.21.1",
+    "fastapi>=0.115.8",
+    "uvicorn>=0.34.0",
+    "pydantic>=2.10.6",
 ]
 
 [dependency-groups]

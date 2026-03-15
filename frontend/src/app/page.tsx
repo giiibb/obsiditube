@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ObsidianCardPreview } from "@/components/ObsidianCardPreview";
+import { NotionCardPreview } from "@/components/NotionCardPreview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,6 +32,8 @@ import {
   Code,
   ClipboardCheck,
   ExternalLink,
+  NotebookText,
+  BookMarked,
 } from "lucide-react";
 
 export default function Home() {
@@ -39,10 +42,12 @@ export default function Home() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [viewMode, setViewMode] = useState<"preview" | "code">("preview");
+  const [outputMode, setOutputMode] = useState<"obsidian" | "notion">("obsidian");
   const [loading, setLoading] = useState(false);
   const [resultTitle, setResultTitle] = useState("");
   const [resultAuthor, setResultAuthor] = useState("");
   const [resultMarkdown, setResultMarkdown] = useState("");
+  const [resultNotion, setResultNotion] = useState("");
   const cookiesRef = useRef(cookies);
   cookiesRef.current = cookies;
 
@@ -68,6 +73,7 @@ export default function Home() {
       setResultTitle(data.title);
       setResultAuthor(data.author || "");
       setResultMarkdown(data.markdown);
+      setResultNotion(data.notion || "");
       toast.success(
         `Generated ${data.markdown.split("cardlink").length - 1} cards from "${data.title}"`
       );
@@ -111,14 +117,20 @@ export default function Home() {
   };
 
   const copyToClipboard = () => {
-    if (!resultMarkdown) return;
-    navigator.clipboard.writeText(resultMarkdown);
-    toast.success("Copied to clipboard!");
+    const content = outputMode === "notion" ? resultNotion : resultMarkdown;
+    if (!content) return;
+    navigator.clipboard.writeText(content);
+    toast.success(
+      outputMode === "notion"
+        ? "Notion markdown copied! Paste it into any Notion page."
+        : "Obsidian markdown copied to clipboard!"
+    );
   };
 
   const downloadFile = () => {
-    if (!resultMarkdown) return;
-    const blob = new Blob([resultMarkdown], { type: "text/markdown" });
+    const content = outputMode === "notion" ? resultNotion : resultMarkdown;
+    if (!content) return;
+    const blob = new Blob([content], { type: "text/markdown" });
     const href = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = href;
@@ -127,7 +139,8 @@ export default function Home() {
       s.trim().replace(/\s+/g, "-").replace(/[^a-zA-Z0-9\-_]/g, "");
     const playlistPart = safeName(resultTitle) || "playlist";
     const authorPart = resultAuthor ? `_by_${safeName(resultAuthor)}` : "";
-    link.download = `ObsidiTube_${playlistPart}_Playlist${authorPart}.md`;
+    const suffix = outputMode === "notion" ? "_Notion" : "";
+    link.download = `ObsidiTube_${playlistPart}_Playlist${authorPart}${suffix}.md`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -380,7 +393,35 @@ export default function Home() {
                 </div>
 
                 <div className="flex gap-1.5">
-                  {/* View Mode Toggle */}
+                  {/* Output Format Toggle: Obsidian | Notion */}
+                  <div className="flex rounded-md border border-white/10 overflow-hidden mr-1.5">
+                    <button
+                      onClick={() => setOutputMode("obsidian")}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium transition-colors ${
+                        outputMode === "obsidian"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-background/30 text-muted-foreground hover:text-foreground"
+                      }`}
+                      title="Obsidian cardlink format"
+                    >
+                      <BookMarked className="h-3.5 w-3.5" />
+                      Obsidian
+                    </button>
+                    <button
+                      onClick={() => setOutputMode("notion")}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium transition-colors ${
+                        outputMode === "notion"
+                          ? "bg-[#ffffff] text-[#191919]"
+                          : "bg-background/30 text-muted-foreground hover:text-foreground"
+                      }`}
+                      title="Notion-compatible markdown for copy-paste"
+                    >
+                      <NotebookText className="h-3.5 w-3.5" />
+                      Notion
+                    </button>
+                  </div>
+
+                  {/* View Mode Toggle: Preview | Code */}
                   <div className="flex rounded-md border border-white/10 overflow-hidden mr-1.5">
                     <button
                       onClick={() => setViewMode("preview")}
@@ -441,9 +482,13 @@ export default function Home() {
                   <ScrollArea className="h-full w-full absolute inset-0">
                     <div className="p-4 md:p-6 pb-12 w-full min-h-full">
                       <pre className="text-sm font-mono leading-relaxed text-[#e5e5e5] whitespace-pre-wrap break-words">
-                        {resultMarkdown}
+                        {outputMode === "notion" ? resultNotion : resultMarkdown}
                       </pre>
                     </div>
+                  </ScrollArea>
+                ) : outputMode === "notion" ? (
+                  <ScrollArea className="h-full w-full absolute inset-0">
+                    <NotionCardPreview notion={resultNotion} />
                   </ScrollArea>
                 ) : (
                   <ScrollArea className="h-full w-full absolute inset-0">
@@ -454,20 +499,29 @@ export default function Home() {
             </Card>
           </div>
 
-          {/* Plugin hint — shown once results are visible */}
+          {/* Contextual hint — shown once results are visible */}
           {resultMarkdown && (
             <div className="lg:col-start-6 lg:col-span-7 flex items-center gap-1.5 text-[11px] text-muted-foreground/50 mt-1 px-1">
-              <span>Renders in Obsidian with</span>
-              <a
-                href="https://obsidian.md/plugins?id=obsidian-auto-card-link"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-0.5 text-primary/60 hover:text-primary transition-colors"
-              >
-                Auto Card Link
-                <ExternalLink className="h-2.5 w-2.5" />
-              </a>
-              <span>plugin</span>
+              {outputMode === "notion" ? (
+                <>
+                  <NotebookText className="h-3 w-3 flex-shrink-0" />
+                  <span>Paste directly into any Notion page — images and checkboxes load automatically</span>
+                </>
+              ) : (
+                <>
+                  <span>Renders in Obsidian with</span>
+                  <a
+                    href="https://obsidian.md/plugins?id=obsidian-auto-card-link"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-0.5 text-primary/60 hover:text-primary transition-colors"
+                  >
+                    Auto Card Link
+                    <ExternalLink className="h-2.5 w-2.5" />
+                  </a>
+                  <span>plugin</span>
+                </>
+              )}
             </div>
           )}
         </div>

@@ -43,6 +43,21 @@ def make_card(playlist_id: str, index: int, video_id: str, title: str) -> str:
     """).strip()
 
 
+def make_notion_card(playlist_id: str, index: int, video_id: str, title: str) -> str:
+    """Generate a Notion-compatible markdown card.
+
+    Produces two lines:
+      1. An image block — Notion fetches the YouTube thumbnail automatically.
+      2. A to-do checkbox with the numbered, bolded, hyperlinked title.
+
+    This is the maximum fidelity achievable via plain paste (no Notion API).
+    """
+    url = f"https://www.youtube.com/watch?v={video_id}&list={playlist_id}&index={index}"
+    thumb = f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"
+    safe_title = title.replace("[", "\\[").replace("]", "\\]")
+    return f"![{safe_title}]({thumb})\n- [ ] [{index}. **{safe_title}**]({url})"
+
+
 @app.command()
 def main(
     url: str,

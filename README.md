@@ -114,10 +114,11 @@ To convert a private playlist:
 |---|---|
 | 🔍 **Auto clipboard detect** | Automatically detects a YouTube playlist URL on page focus |
 | ⚡ **Auto-generate on paste** | Starts generating as soon as a valid playlist URL is entered |
-| 👁 **Preview / Code toggle** | Preview renders Obsidian-style cards; Code shows raw markdown |
+| 👁 **Preview / Code toggle** | Preview renders cards visually; Code shows raw markdown |
 | 🃏 **Card renderer** | Thumbnails, checkboxes, titles, favicon, and host — click to open video |
 | 📥 **Smart download** | Filename: `ObsidiTube_PLAYLIST_Playlist_by_CHANNELNAME.md` |
 | 🔒 **Private support** | Cookie-based auth with step-by-step extraction guide |
+| 📋 **Notion export** | Switch to Notion mode for copy-paste-ready markdown with thumbnails |
 
 ---
 
@@ -145,6 +146,24 @@ uv run main.py "https://..." -o playlist.md --force
 
 Install the **[Auto Card Link](https://github.com/nekoshita/obsidian-auto-card-link)** community plugin.  
 It renders `cardlink` fenced blocks as rich link previews with thumbnails.
+
+---
+
+## 📋 Notion Export (Copy-Paste)
+
+Switch to **Notion mode** in the output panel to get markdown optimized for Notion — no API, no token required.
+
+For each video, the Notion format generates:
+```md
+![Video Title](https://i.ytimg.com/vi/VIDEO_ID/hqdefault.jpg)
+- [ ] [1. **Video Title**](https://www.youtube.com/watch?v=VIDEO_ID&list=PLAYLIST_ID&index=1)
+```
+
+When pasted into a Notion page:
+- 🖼 The `![...]` becomes an **embedded image** (Notion fetches the YouTube thumbnail automatically)
+- ☑️ The `- [ ]` becomes a **to-do checkbox** linked to the video
+
+> **Note:** A proper Notion database with gallery view and page covers requires the Notion API (planned for a future phase).
 
 ---
 

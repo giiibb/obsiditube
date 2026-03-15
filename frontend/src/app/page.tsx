@@ -367,15 +367,15 @@ export default function Home() {
           <div className="lg:col-span-7 h-[600px] flex flex-col">
             <Card className="flex-1 flex flex-col border-white/10 bg-card/50 backdrop-blur-sm overflow-hidden shadow-2xl transition-all">
               <div className="h-14 border-b border-white/5 bg-background/50 flex items-center justify-between px-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex gap-1.5 opacity-60">
-                    <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                    <div className="w-3 h-3 rounded-full bg-green-500/80" />
-                  </div>
-                  <span className="text-sm font-medium text-muted-foreground ml-2 truncate max-w-[200px] sm:max-w-xs">
-                    {resultTitle ? `${resultTitle}.md` : "Output"}
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-sm font-medium text-muted-foreground truncate max-w-[200px] sm:max-w-xs">
+                    {resultTitle ? resultTitle : "Output"}
                   </span>
+                  {resultTitle && (
+                    <span className="flex-shrink-0 text-[10px] font-mono font-semibold tracking-widest text-primary/60 bg-primary/8 border border-primary/15 px-1.5 py-0.5 rounded">
+                      .md
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex gap-1.5">

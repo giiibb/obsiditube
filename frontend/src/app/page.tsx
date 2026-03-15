@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import ReactMarkdown from "react-markdown";
+import { ObsidianCardPreview } from "@/components/ObsidianCardPreview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -376,18 +376,7 @@ export default function Home() {
                   </ScrollArea>
                 ) : (
                   <ScrollArea className="h-full w-full absolute inset-0">
-                    <div className="p-4 md:p-6 pb-12 w-full min-h-full prose prose-invert prose-sm max-w-none
-                      prose-headings:text-foreground
-                      prose-p:text-[#d4d4d4]
-                      prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-                      prose-strong:text-foreground
-                      prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs
-                      prose-pre:bg-[#111] prose-pre:border prose-pre:border-white/10 prose-pre:rounded-lg
-                      prose-li:text-[#d4d4d4] prose-li:marker:text-primary/60
-                      prose-img:rounded-lg
-                      [&_input[type=checkbox]]:accent-primary">
-                      <ReactMarkdown>{resultMarkdown}</ReactMarkdown>
-                    </div>
+                    <ObsidianCardPreview markdown={resultMarkdown} />
                   </ScrollArea>
                 )}
               </div>

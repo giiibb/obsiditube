@@ -1,3 +1,23 @@
+"""
+ObsidiTube — FastAPI Backend
+============================
+Exposes a single REST endpoint that wraps the original CLI scraping logic:
+
+  POST /api/convert
+    body: { url: str, cookies?: str }
+    response: { markdown: str, title: str, author: str }
+
+The endpoint:
+  1. Validates and extracts the playlist ID from the given YouTube URL.
+  2. Creates an HTTP session with consent cookies + optional user-provided cookies.
+  3. Fetches the YouTube playlist page and extracts ytInitialData (inline JSON).
+  4. Iterates over all videos, following continuation tokens for long playlists.
+  5. Returns the assembled Obsidian cardlink markdown.
+
+CORS is fully open so the Next.js frontend (or any other client) can call this
+regardless of port or origin.
+"""
+
 import json
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,10 +31,15 @@ from src.parser import (
 )
 from src.fetch import fetch_continuation
 from src import utils
-from main import make_card
+from main import make_card  # reuse the card formatter from the original CLI
 
-app = FastAPI()
+app = FastAPI(
+    title="ObsidiTube API",
+    description="Convert YouTube playlists to Obsidian cardlink markdown.",
+    version="1.0.0",
+)
 
+# Allow all origins so the Next.js dev server and Vercel frontend can reach this.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -25,37 +50,61 @@ app.add_middleware(
 
 
 class ConvertRequest(BaseModel):
-    url: str
-    cookies: str | None = None
+    """Request body for the /api/convert endpoint."""
+    url: str           # Full YouTube playlist URL
+    cookies: str | None = None  # Optional raw cookie header string (for private playlists)
 
 
 class ConvertResponse(BaseModel):
-    markdown: str
-    title: str
-    author: str
+    """Response body returned after successful conversion."""
+    markdown: str  # Full Obsidian cardlink markdown output
+    title: str     # Playlist title (used as the suggested filename)
+    author: str    # Channel / uploader name (may be empty if not found)
 
 
 @app.post("/api/convert", response_model=ConvertResponse)
 def convert_playlist(req: ConvertRequest):
+    """
+    Main conversion endpoint.
+
+    Steps:
+      1. Parse playlist ID from URL (raises 400 on invalid URL / missing list= param).
+      2. Fetch the YouTube playlist HTML page.
+      3. Extract ytInitialData JSON embedded in the page.
+      4. Pull out title, author, and the list of video renderers.
+      5. For playlists > ~100 videos, follow YouTube's continuation tokens recursively.
+      6. Assemble and return the full markdown.
+    """
+
+    # --- Step 1: validate URL and extract playlist ID ---
     try:
         playlist_id = parser_url_and_get_playlist_id(req.url)
     except ParserError as e:
         raise HTTPException(status_code=400, detail=str(e.msg))
 
+    # Build the requests Session with appropriate headers and cookies.
+    # SOCS/CONSENT cookies are always injected to bypass the EU consent gate.
+    # User-provided cookies are appended after (for private playlist access).
     session = create_session(cached=False, cookies=req.cookies)
 
-    # ---- FETCH INITIAL PAGE ----
+    # --- Step 2 & 3: fetch the page and extract ytInitialData ---
     try:
         with session.get(
             url=f"https://www.youtube.com/playlist?list={playlist_id}"
         ) as resp:
             resp.raise_for_status()
+
+            # YouTube embeds a large JSON object in the HTML as:
+            #   var ytInitialData = { ... };
+            # We extract it with a custom byte-level parser (no regex /  beautifulsoup
+            # needed — faster and avoids encoding issues with large pages).
             ytInitialData = json.loads(
                 get_json_from_content(
                     resp.content, name=b"var ytInitialData = ", prefix=b"", postfix=b""
                 )
             )
 
+            # Playlist title — always present under metadata.
             title = utils.get_nested_item(
                 ytInitialData,
                 "metadata",
@@ -63,7 +112,8 @@ def convert_playlist(req: ConvertRequest):
                 "title",
             )
 
-            # Try to get channel/author name from the header
+            # Channel / uploader name — found under the header renderer.
+            # Two possible paths depending on playlist type; fall back to "".
             try:
                 author = utils.get_nested_item(
                     ytInitialData,
@@ -76,6 +126,7 @@ def convert_playlist(req: ConvertRequest):
                 )
             except Exception:
                 try:
+                    # Alternative path used for some playlist types
                     author = utils.get_nested_item(
                         ytInitialData,
                         "sidebar",
@@ -91,13 +142,14 @@ def convert_playlist(req: ConvertRequest):
                         "text",
                     )
                 except Exception:
-                    author = ""
+                    author = ""  # Not critical — download filename will omit the _by_ suffix
+
     except Exception as e:
         raise HTTPException(
             status_code=400, detail=f"Failed to fetch initial page: {str(e)}"
         )
 
-    # ---- EXTRACT CONTENTS ----
+    # --- Step 4: navigate the nested ytInitialData to the video list ---
     try:
         contents = utils.get_nested_item(
             ytInitialData,
@@ -122,17 +174,21 @@ def convert_playlist(req: ConvertRequest):
             detail="Failed to parse playlist contents. Make sure the cookies are valid if the playlist is private.",
         )
 
+    # --- Step 5: iterate videos, following continuation tokens if needed ---
     continuationItemRenderer_found: bool = False
     cards: list[str] = []
-    
+
     try:
         for video_index, content in enumerate(contents, start=1):
             continuationItemRenderer = content.get("continuationItemRenderer")
+
             if continuationItemRenderer_found:
+                # Should never happen — continuation must be the last item
                 raise ValueError(
                     "continuationItemRenderer can only occure at max 1 time and it should be at last."
                 )
             elif continuationItemRenderer is not None:
+                # This batch is paginated — fetch subsequent pages via the API
                 continuationItemRenderer_found = True
                 cards.extend(
                     map(
@@ -159,6 +215,7 @@ def convert_playlist(req: ConvertRequest):
                     )
                 )
             else:
+                # Normal video entry — extract video ID and title
                 playlistVideoRenderer = content["playlistVideoRenderer"]
                 video_id = playlistVideoRenderer["videoId"]
                 card = make_card(
@@ -174,11 +231,13 @@ def convert_playlist(req: ConvertRequest):
                     ),
                 )
                 cards.append(card)
+
     except Exception as e:
         raise HTTPException(
             status_code=400, detail=f"Failed to extract videos: {str(e)}"
         )
 
+    # Join all cards with a single newline between each block
     result = "\n".join(cards)
 
     return ConvertResponse(markdown=result, title=title, author=author)

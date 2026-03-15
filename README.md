@@ -1,14 +1,15 @@
-# ObsidiTube
+# ObsidiTube 🎬 → 📝
 
-A beautiful, frictionless web dashboard that seamlessly turns any YouTube playlist into Obsidian “cardlink” blocks so you can manage videos as actionable todos.
+**Turn any YouTube playlist into Obsidian checklist cards — instantly.**
 
-Built with a modern stack (**Next.js, FastAPI, Tailwind CSS, Shadcn UI**).
+> **Forked from** [thefcraft/youtube-playlist-to-obsidian-cards](https://github.com/thefcraft/youtube-playlist-to-obsidian-cards)  
+> ObsidiTube wraps the original CLI in a full-stack web dashboard with a modern UI, private playlist support, rendered card preview, and one-click download.
 
 ---
 
-## What you get
+## ✨ What it does
 
-**ObsidiTube** takes any playlist (public or private) and generates beautifully formatted Markdown:
+For every video in a playlist, it generates an Obsidian `cardlink` block:
 
 ```md
 1. [ ] **"Some Video Title"**
@@ -21,53 +22,147 @@ image: https://i.ytimg.com/vi/VIDEO_ID/hqdefault.jpg
 ```
 ```
 
-Copy the generated markdown to your Obsidian vault, and the **Auto Card Link** plugin will render rich link previews.
+Each card:
+- ☐ Acts as a **todo checkbox** in Obsidian
+- 🖼 Renders as a **rich link preview** via the [Auto Card Link](https://github.com/nekoshita/obsidian-auto-card-link) community plugin
+- 🔗 Keeps the original playlist index and video link
 
 ---
 
-## Getting Started
+## 🏗 Architecture
+
+```
+obsiditube/
+├── api.py              # FastAPI backend — POST /api/convert
+├── main.py             # Original CLI entry point (kept intact)
+├── dev.py              # Dev launcher: runs backend + frontend concurrently
+├── src/
+│   ├── config.py       # HTTP session factory, User-Agent, consent cookies
+│   ├── fetch.py        # YouTube continuation API (paginated playlists)
+│   ├── parser.py       # URL validation + inline JSON extractor from HTML
+│   └── utils.py        # Nested dict accessor helpers
+└── frontend/           # Next.js 15 + Shadcn UI dashboard
+    └── src/
+        ├── app/
+        │   ├── page.tsx        # Main dashboard (URL input, results, preview/code toggle)
+        │   ├── layout.tsx      # Root layout, fonts, dark mode
+        │   └── globals.css     # Tailwind v4 theme, dark palette with pastel red/orange
+        └── components/
+            └── ObsidianCardPreview.tsx  # Renders cardlink blocks as visual cards
+```
+
+---
+
+## 🚀 Quick Start (Local Dev)
 
 ### Prerequisites
-- Python 3.13+
-- Node.js & npm
-- `uv` (for Python dependency management)
+- Python ≥ 3.11 with [uv](https://github.com/astral-sh/uv)
+- Node.js ≥ 18
 
-### 1. Install Dependencies
+### 1. Clone
+```bash
+git clone https://github.com/giiibb/obsiditube.git
+cd obsiditube
+```
 
-**Backend (Python)**:
+### 2. Install Python dependencies
 ```bash
 uv sync
 ```
 
-**Frontend (Next.js)**:
+### 3. Install frontend dependencies
 ```bash
-cd frontend
-npm install
-cd ..
+cd frontend && npm install && cd ..
 ```
 
-### 2. Run the Development Server
-
-A combined dev script is included so you don't have to start the FastAPI and Next.js servers separately:
-
+### 4. Run
 ```bash
 uv run python dev.py
 ```
 
-This will run the FastAPI backend on port `8000` and the Next.js frontend on port `3000` (or the next available port).
-Open `http://localhost:3000` in your web browser.
+This starts:
+- **FastAPI backend** on `http://localhost:8000`
+- **Next.js frontend** on `http://localhost:3000`
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## Private Playlists
-If you need to convert a private playlist or a "Watch Later" list:
-1. Open any YouTube network request in your browser's DevTools.
-2. Grab the `cookie` header.
-3. In the ObsidiTube UI, click **Advanced options** and paste the cookie string.
+## 🌐 Deployed
+
+**Live app:** [obsiditube.vercel.app](https://obsiditube.vercel.app)
+
+> ⚠️ The Vercel deployment only hosts the **frontend**. The backend API must be run locally for actual playlist conversion.
 
 ---
 
-## Recommended Obsidian Setup
-- Install the **Auto Card Link** community plugin.
-- Make sure it's enabled and set to render fenced `cardlink` blocks.
-- *(Optional)* Checklist plugin for better task UI.
+## 🔒 Private Playlists
+
+To convert a private playlist:
+
+1. Open YouTube in your browser and log in
+2. Press `F12` → Network tab → refresh the page
+3. Click on any `youtube.com` request
+4. Find the `cookie:` header → copy the entire value
+5. In ObsidiTube, click **"Private playlist? Click here"** and paste your cookies
+
+---
+
+## 📋 Features
+
+| Feature | Description |
+|---|---|
+| 🔍 **Auto clipboard detect** | Automatically detects a YouTube playlist URL on page focus |
+| ⚡ **Auto-generate on paste** | Starts generating as soon as a valid playlist URL is entered |
+| 👁 **Preview / Code toggle** | Preview renders Obsidian-style cards; Code shows raw markdown |
+| 🃏 **Card renderer** | Thumbnails, checkboxes, titles, favicon, and host — click to open video |
+| 📥 **Smart download** | Filename: `ObsidiTube_PLAYLIST_Playlist_by_CHANNELNAME.md` |
+| 🔒 **Private support** | Cookie-based auth with step-by-step extraction guide |
+
+---
+
+## 🛠 CLI Usage (original)
+
+The original CLI is still fully functional:
+
+```bash
+# Basic
+uv run main.py "https://www.youtube.com/playlist?list=PLAYLIST_ID"
+
+# Custom output file
+uv run main.py "https://..." -o todos.md
+
+# Print to stdout
+uv run main.py "https://..." --stdout
+
+# Overwrite existing file
+uv run main.py "https://..." -o playlist.md --force
+```
+
+---
+
+## 🧩 Obsidian Setup
+
+Install the **[Auto Card Link](https://github.com/nekoshita/obsidian-auto-card-link)** community plugin.  
+It renders `cardlink` fenced blocks as rich link previews with thumbnails.
+
+---
+
+## ⚠️ Limitations
+
+- Uses YouTube's internal (undocumented) API — may break if YouTube changes their page structure
+- Descriptions are not fetched (intentionally — not needed for a todo tracker)
+- Private playlists require manual cookie extraction
+
+---
+
+## 🙏 Credits
+
+- **Original project:** [thefcraft/youtube-playlist-to-obsidian-cards](https://github.com/thefcraft/youtube-playlist-to-obsidian-cards) — the core scraping & parsing logic
+- **Fork / Web UI:** [giiibb/obsiditube](https://github.com/giiibb/obsiditube)
+
+---
+
+## 📄 License
+
+MIT — see [LICENSE](./LICENSE)

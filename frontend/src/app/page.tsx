@@ -30,6 +30,7 @@ import {
   Eye,
   Code,
   ClipboardCheck,
+  ExternalLink,
 } from "lucide-react";
 
 export default function Home() {
@@ -452,6 +453,23 @@ export default function Home() {
               </div>
             </Card>
           </div>
+
+          {/* Plugin hint — shown once results are visible */}
+          {resultMarkdown && (
+            <div className="lg:col-start-6 lg:col-span-7 flex items-center gap-1.5 text-[11px] text-muted-foreground/50 mt-1 px-1">
+              <span>Renders in Obsidian with</span>
+              <a
+                href="https://obsidian.md/plugins?id=obsidian-auto-card-link"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-0.5 text-primary/60 hover:text-primary transition-colors"
+              >
+                Auto Card Link
+                <ExternalLink className="h-2.5 w-2.5" />
+              </a>
+              <span>plugin</span>
+            </div>
+          )}
         </div>
       </main>
     </div>

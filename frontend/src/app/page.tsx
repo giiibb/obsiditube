@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { ObsidianCardPreview } from "@/components/ObsidianCardPreview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,7 @@ import {
   ClipboardCopy,
   Eye,
   Code,
+  ClipboardCheck,
 } from "lucide-react";
 
 export default function Home() {
@@ -37,44 +38,72 @@ export default function Home() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [viewMode, setViewMode] = useState<"preview" | "code">("preview");
-
   const [loading, setLoading] = useState(false);
   const [resultTitle, setResultTitle] = useState("");
   const [resultMarkdown, setResultMarkdown] = useState("");
+  const cookiesRef = useRef(cookies);
+  cookiesRef.current = cookies;
 
-  const handleGenerate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!url) {
-      toast.error("Please enter a YouTube playlist URL");
-      return;
-    }
+  const isPlaylistUrl = (text: string) =>
+    /youtube\.com.*[?&]list=/.test(text) || /youtu\.be.*[?&]list=/.test(text);
 
+  const generate = useCallback(async (targetUrl: string, cookieStr?: string) => {
     setLoading(true);
     setResultMarkdown("");
     setResultTitle("");
-
     try {
       const res = await fetch("http://localhost:8000/api/convert", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, cookies: cookies || null }),
+        body: JSON.stringify({ url: targetUrl, cookies: cookieStr || null }),
       });
-
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.detail || "Failed to convert playlist");
       }
-
       const data = await res.json();
       setResultTitle(data.title);
       setResultMarkdown(data.markdown);
-      toast.success(`Generated ${data.markdown.split("cardlink").length - 1} cards from "${data.title}"`);
+      toast.success(
+        `Generated ${data.markdown.split("cardlink").length - 1} cards from "${data.title}"`
+      );
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "An unknown error occurred";
       toast.error(message);
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  // On mount: check clipboard for a playlist URL
+  useEffect(() => {
+    if (!navigator.clipboard?.readText) return;
+    navigator.clipboard.readText().then((text) => {
+      const trimmed = text.trim();
+      if (isPlaylistUrl(trimmed)) {
+        setUrl(trimmed);
+        toast.info("Playlist URL detected in clipboard — generating...", {
+          icon: <ClipboardCheck className="h-4 w-4" />,
+          duration: 3000,
+        });
+        generate(trimmed, cookiesRef.current);
+      }
+    }).catch(() => {/* clipboard permission denied, fine */});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleUrlChange = (newUrl: string) => {
+    setUrl(newUrl);
+    // Auto-generate when a valid URL is pasted/typed
+    if (isPlaylistUrl(newUrl.trim())) {
+      generate(newUrl.trim(), cookiesRef.current);
+    }
+  };
+
+  const handleGenerate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!url) { toast.error("Please enter a YouTube playlist URL"); return; }
+    generate(url, cookies);
   };
 
   const copyToClipboard = () => {
@@ -186,7 +215,7 @@ export default function Home() {
                       id="url"
                       placeholder="https://youtube.com/playlist?list=..."
                       value={url}
-                      onChange={(e) => setUrl(e.target.value)}
+                      onChange={(e) => handleUrlChange(e.target.value)}
                       className="bg-background/50 border-white/10 focus-visible:ring-primary h-12 text-base transition-all"
                       disabled={loading}
                     />
@@ -271,23 +300,59 @@ export default function Home() {
                     </div>
                   )}
 
-                  <Button
-                    type="submit"
-                    className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground transition-all hover:scale-[1.01] active:scale-[0.99]"
-                    disabled={loading || !url}
-                  >
-                    {loading ? (
-                      <span className="flex items-center gap-2">
-                        <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-                        Generating...
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-2">
-                        <Wand2 className="h-5 w-5" />
-                        Generate Cards
-                      </span>
-                    )}
-                  </Button>
+                  {/* Dynamic button: Generate → Copy + Download + Regenerate once results exist */}
+                  {resultMarkdown ? (
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        onClick={copyToClipboard}
+                        className="flex-1 h-12 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground transition-all hover:scale-[1.01] active:scale-[0.99]"
+                      >
+                        <Copy className="h-5 w-5 mr-2" />
+                        Copy
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={downloadFile}
+                        className="flex-1 h-12 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground transition-all hover:scale-[1.01] active:scale-[0.99]"
+                      >
+                        <Download className="h-5 w-5 mr-2" />
+                        Download
+                      </Button>
+                      <Button
+                        type="submit"
+                        variant="outline"
+                        size="icon"
+                        className="h-12 w-12 border-white/10 bg-background/30 hover:bg-background/60 flex-shrink-0"
+                        disabled={loading || !url}
+                        title="Regenerate"
+                      >
+                        {loading ? (
+                          <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+                        ) : (
+                          <Wand2 className="h-5 w-5" />
+                        )}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="submit"
+                      className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground transition-all hover:scale-[1.01] active:scale-[0.99]"
+                      disabled={loading || !url}
+                    >
+                      {loading ? (
+                        <span className="flex items-center gap-2">
+                          <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+                          Generating...
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          <Wand2 className="h-5 w-5" />
+                          Generate Cards
+                        </span>
+                      )}
+                    </Button>
+                  )}
                 </form>
               </CardContent>
             </Card>

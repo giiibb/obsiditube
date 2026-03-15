@@ -40,6 +40,7 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<"preview" | "code">("preview");
   const [loading, setLoading] = useState(false);
   const [resultTitle, setResultTitle] = useState("");
+  const [resultAuthor, setResultAuthor] = useState("");
   const [resultMarkdown, setResultMarkdown] = useState("");
   const cookiesRef = useRef(cookies);
   cookiesRef.current = cookies;
@@ -51,6 +52,7 @@ export default function Home() {
     setLoading(true);
     setResultMarkdown("");
     setResultTitle("");
+    setResultAuthor("");
     try {
       const res = await fetch("http://localhost:8000/api/convert", {
         method: "POST",
@@ -63,6 +65,7 @@ export default function Home() {
       }
       const data = await res.json();
       setResultTitle(data.title);
+      setResultAuthor(data.author || "");
       setResultMarkdown(data.markdown);
       toast.success(
         `Generated ${data.markdown.split("cardlink").length - 1} cards from "${data.title}"`
@@ -118,10 +121,12 @@ export default function Home() {
     const href = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = href;
-    const safeTitle = resultTitle
-      ? resultTitle.replace(/[^a-z0-9]/gi, "_").toLowerCase()
-      : "playlist";
-    link.download = `${safeTitle}.md`;
+    // Format: ObsidiTube_PLAYLIST-NAME_Playlist_by_CHANNELNAME
+    const safeName = (s: string) =>
+      s.trim().replace(/\s+/g, "-").replace(/[^a-zA-Z0-9\-_]/g, "");
+    const playlistPart = safeName(resultTitle) || "playlist";
+    const authorPart = resultAuthor ? `_by_${safeName(resultAuthor)}` : "";
+    link.download = `ObsidiTube_${playlistPart}_Playlist${authorPart}.md`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

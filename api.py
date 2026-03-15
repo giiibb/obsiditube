@@ -32,6 +32,7 @@ class ConvertRequest(BaseModel):
 class ConvertResponse(BaseModel):
     markdown: str
     title: str
+    author: str
 
 
 @app.post("/api/convert", response_model=ConvertResponse)
@@ -61,6 +62,36 @@ def convert_playlist(req: ConvertRequest):
                 "playlistMetadataRenderer",
                 "title",
             )
+
+            # Try to get channel/author name from the header
+            try:
+                author = utils.get_nested_item(
+                    ytInitialData,
+                    "header",
+                    "playlistHeaderRenderer",
+                    "ownerText",
+                    "runs",
+                    utils.ListExactlyOne,
+                    "text",
+                )
+            except Exception:
+                try:
+                    author = utils.get_nested_item(
+                        ytInitialData,
+                        "sidebar",
+                        "playlistSidebarRenderer",
+                        "items",
+                        utils.ListExactlyOneChildDictKey,
+                        "playlistSidebarSecondaryInfoRenderer",
+                        "videoOwner",
+                        "videoOwnerRenderer",
+                        "title",
+                        "runs",
+                        utils.ListExactlyOne,
+                        "text",
+                    )
+                except Exception:
+                    author = ""
     except Exception as e:
         raise HTTPException(
             status_code=400, detail=f"Failed to fetch initial page: {str(e)}"
@@ -150,4 +181,4 @@ def convert_playlist(req: ConvertRequest):
 
     result = "\n".join(cards)
 
-    return ConvertResponse(markdown=result, title=title)
+    return ConvertResponse(markdown=result, title=title, author=author)

@@ -31,7 +31,7 @@ from src.parser import (
 )
 from src.fetch import fetch_continuation
 from src import utils
-from main import make_card  # reuse the card formatter from the original CLI
+from main import make_card, make_notion_card  # reuse card formatters from the original CLI
 
 app = FastAPI(
     title="ObsidiTube API",
@@ -58,6 +58,7 @@ class ConvertRequest(BaseModel):
 class ConvertResponse(BaseModel):
     """Response body returned after successful conversion."""
     markdown: str  # Full Obsidian cardlink markdown output
+    notion: str    # Notion-compatible markdown (image + checkbox per video)
     title: str     # Playlist title (used as the suggested filename)
     author: str    # Channel / uploader name (may be empty if not found)
 
@@ -177,6 +178,7 @@ def convert_playlist(req: ConvertRequest):
     # --- Step 5: iterate videos, following continuation tokens if needed ---
     continuationItemRenderer_found: bool = False
     cards: list[str] = []
+    notion_cards: list[str] = []
 
     try:
         for video_index, content in enumerate(contents, start=1):
@@ -190,47 +192,58 @@ def convert_playlist(req: ConvertRequest):
             elif continuationItemRenderer is not None:
                 # This batch is paginated — fetch subsequent pages via the API
                 continuationItemRenderer_found = True
-                cards.extend(
-                    map(
-                        lambda video_info: make_card(
-                            playlist_id=video_info["playlist_id"],
-                            index=video_info["index"],
-                            video_id=video_info["video_id"],
-                            title=video_info["title"],
+                continuation_videos = list(
+                    fetch_continuation(
+                        session,
+                        playlist_id,
+                        continuation_token=utils.get_nested_item(
+                            continuationItemRenderer,
+                            "continuationEndpoint",
+                            "commandExecutorCommand",
+                            "commands",
+                            utils.ListExactlyOneChildDictKey,
+                            "continuationCommand",
+                            "token",
                         ),
-                        fetch_continuation(
-                            session,
-                            playlist_id,
-                            continuation_token=utils.get_nested_item(
-                                continuationItemRenderer,
-                                "continuationEndpoint",
-                                "commandExecutorCommand",
-                                "commands",
-                                utils.ListExactlyOneChildDictKey,
-                                "continuationCommand",
-                                "token",
-                            ),
-                            video_index=video_index,
-                        ),
+                        video_index=video_index,
                     )
                 )
+                for video_info in continuation_videos:
+                    cards.append(make_card(
+                        playlist_id=video_info["playlist_id"],
+                        index=video_info["index"],
+                        video_id=video_info["video_id"],
+                        title=video_info["title"],
+                    ))
+                    notion_cards.append(make_notion_card(
+                        playlist_id=video_info["playlist_id"],
+                        index=video_info["index"],
+                        video_id=video_info["video_id"],
+                        title=video_info["title"],
+                    ))
             else:
                 # Normal video entry — extract video ID and title
                 playlistVideoRenderer = content["playlistVideoRenderer"]
                 video_id = playlistVideoRenderer["videoId"]
-                card = make_card(
+                video_title = utils.get_nested_item(
+                    playlistVideoRenderer,
+                    "title",
+                    "runs",
+                    utils.ListExactlyOne,
+                    "text",
+                )
+                cards.append(make_card(
                     playlist_id=playlist_id,
                     index=video_index,
                     video_id=video_id,
-                    title=utils.get_nested_item(
-                        playlistVideoRenderer,
-                        "title",
-                        "runs",
-                        utils.ListExactlyOne,
-                        "text",
-                    ),
-                )
-                cards.append(card)
+                    title=video_title,
+                ))
+                notion_cards.append(make_notion_card(
+                    playlist_id=playlist_id,
+                    index=video_index,
+                    video_id=video_id,
+                    title=video_title,
+                ))
 
     except Exception as e:
         raise HTTPException(
@@ -239,5 +252,6 @@ def convert_playlist(req: ConvertRequest):
 
     # Join all cards with a single newline between each block
     result = "\n".join(cards)
+    notion_result = "\n\n".join(notion_cards)
 
-    return ConvertResponse(markdown=result, title=title, author=author)
+    return ConvertResponse(markdown=result, notion=notion_result, title=title, author=author)

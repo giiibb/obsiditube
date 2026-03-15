@@ -5,16 +5,35 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Toaster, toast } from "sonner";
-import { Youtube, Wand2, Copy, Download, Settings2, Github } from "lucide-react";
+import {
+  Youtube,
+  Wand2,
+  Copy,
+  Download,
+  ChevronDown,
+  ChevronUp,
+  Github,
+  Globe,
+  MousePointerClick,
+  Search,
+  ClipboardCopy,
+} from "lucide-react";
 
 export default function Home() {
   const [url, setUrl] = useState("");
   const [cookies, setCookies] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
-  
+  const [showGuide, setShowGuide] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [resultTitle, setResultTitle] = useState("");
   const [resultMarkdown, setResultMarkdown] = useState("");
@@ -45,9 +64,10 @@ export default function Home() {
       const data = await res.json();
       setResultTitle(data.title);
       setResultMarkdown(data.markdown);
-      toast.success("Successfully generated Obsidian cards!");
-    } catch (err: any) {
-      toast.error(err.message);
+      toast.success(`Generated ${data.markdown.split("cardlink").length - 1} cards from "${data.title}"`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "An unknown error occurred";
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -65,7 +85,9 @@ export default function Home() {
     const href = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = href;
-    const safeTitle = resultTitle ? resultTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'playlist';
+    const safeTitle = resultTitle
+      ? resultTitle.replace(/[^a-z0-9]/gi, "_").toLowerCase()
+      : "playlist";
     link.download = `${safeTitle}.md`;
     document.body.appendChild(link);
     link.click();
@@ -74,21 +96,45 @@ export default function Home() {
     toast.success("Download started!");
   };
 
+  const COOKIE_STEPS = [
+    {
+      icon: <Globe className="h-4 w-4 text-primary flex-shrink-0" />,
+      title: "Open YouTube in your browser",
+      detail: "Make sure you're logged in to the account that has access to the private playlist.",
+    },
+    {
+      icon: <MousePointerClick className="h-4 w-4 text-primary flex-shrink-0" />,
+      title: "Open DevTools",
+      detail: "Press F12 or right-click anywhere → Inspect.",
+    },
+    {
+      icon: <Search className="h-4 w-4 text-primary flex-shrink-0" />,
+      title: "Go to the Network tab",
+      detail:
+        'Refresh the page. Click on any request to youtube.com (e.g. the first "playlist?list=…" request). In the Headers panel, scroll down to find the "cookie:" header.',
+    },
+    {
+      icon: <ClipboardCopy className="h-4 w-4 text-primary flex-shrink-0" />,
+      title: "Copy the entire cookie value",
+      detail: "Right-click the cookie value → Copy value. Paste it in the field below.",
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30">
       <Toaster theme="dark" position="top-center" richColors />
-      
+
       {/* Header */}
       <header className="border-b border-white/5 bg-background/50 backdrop-blur-xl sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-primary">
-            <Youtube className="h-6 w-6" />
-            <span className="font-bold tracking-wider text-lg text-foreground">
-              YT<span className="text-primary">2</span>OBSIDIAN
+          <div className="flex items-center gap-2.5">
+            <Youtube className="h-6 w-6 text-primary" />
+            <span className="font-bold tracking-tight text-lg">
+              Obsidi<span className="text-primary">Tube</span>
             </span>
           </div>
           <a
-            href="https://github.com/thefcraft/youtube-playlist-to-obsidian-cards"
+            href="https://github.com/giiibb/obsiditube"
             target="_blank"
             rel="noreferrer"
             className="text-muted-foreground hover:text-foreground transition-colors"
@@ -101,15 +147,16 @@ export default function Home() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-12 max-w-5xl">
         <div className="text-center mb-12 space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium border border-primary/20 mb-4 shadow-[0_0_20px_var(--color-primary)] opacity-90">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium border border-primary/20 mb-4 shadow-[0_0_20px_rgba(200,100,60,0.15)]">
             <Wand2 className="h-4 w-4" />
             <span>Turn playlists into actionable tasks</span>
           </div>
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight bg-gradient-to-br from-white to-white/40 bg-clip-text text-transparent pb-1">
+          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight bg-gradient-to-br from-white via-white/80 to-white/30 bg-clip-text text-transparent pb-1">
             YouTube to Obsidian
           </h1>
-          <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto">
-            Convert any YouTube playlist into beautifully formatted Obsidian checklist cards, instantly. Fast, frictionless, and secure.
+          <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
+            Convert any YouTube playlist into beautifully formatted Obsidian
+            checklist cards. Fast, frictionless, secure.
           </p>
         </div>
 
@@ -117,18 +164,18 @@ export default function Home() {
           {/* Form Section */}
           <div className="lg:col-span-5 space-y-6">
             <Card className="border-white/10 bg-card/50 backdrop-blur-md shadow-2xl relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-50 transition-opacity"></div>
-              
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <span>Configuration</span>
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-50" />
+
+              <CardHeader className="relative z-10">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  Configuration
                 </CardTitle>
                 <CardDescription>
-                  Paste your playlist link below.
+                  Paste a public or private playlist link.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <form onSubmit={handleGenerate} className="space-y-6 relative z-10">
+              <CardContent className="relative z-10">
+                <form onSubmit={handleGenerate} className="space-y-5">
                   <div className="space-y-2">
                     <Label htmlFor="url">Playlist URL</Label>
                     <Input
@@ -136,53 +183,99 @@ export default function Home() {
                       placeholder="https://youtube.com/playlist?list=..."
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
-                      className="bg-background/50 border-white/10 focus-visible:ring-primary h-12 text-md transition-all"
+                      className="bg-background/50 border-white/10 focus-visible:ring-primary h-12 text-base transition-all"
                       disabled={loading}
                     />
                   </div>
 
-                  <div className="pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowAdvanced(!showAdvanced)}
-                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
-                    >
-                      <Settings2 className="h-4 w-4 group-hover:rotate-90 transition-transform duration-300" />
-                      {showAdvanced ? "Hide advanced options" : "Advanced options"}
-                    </button>
-                  </div>
+                  {/* Advanced toggle */}
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvanced(!showAdvanced)}
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group w-full"
+                  >
+                    {showAdvanced ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                    {showAdvanced
+                      ? "Hide private playlist options"
+                      : "Private playlist? Click here"}
+                  </button>
 
                   {showAdvanced && (
-                    <div className="space-y-4 pt-2 animate-in slide-in-from-top-4 fade-in duration-300">
+                    <div className="space-y-4 animate-in slide-in-from-top-2 fade-in duration-200">
+                      {/* Step-by-step cookie guide */}
+                      <div className="rounded-lg border border-white/10 bg-background/30 overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setShowGuide(!showGuide)}
+                          className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-foreground hover:bg-white/5 transition-colors"
+                        >
+                          <span>📖 How to get your cookies</span>
+                          {showGuide ? (
+                            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </button>
+
+                        {showGuide && (
+                          <div className="px-4 pb-4 space-y-3 animate-in fade-in duration-200">
+                            {COOKIE_STEPS.map((step, i) => (
+                              <div
+                                key={i}
+                                className="flex gap-3 items-start"
+                              >
+                                <div className="mt-0.5 flex items-center justify-center h-6 w-6 rounded-full bg-primary/15 text-[11px] font-bold text-primary flex-shrink-0">
+                                  {i + 1}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-foreground leading-tight">
+                                    {step.title}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                                    {step.detail}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
                       <div className="space-y-2">
-                        <Label htmlFor="cookies" className="text-muted-foreground flex items-center justify-between">
+                        <Label
+                          htmlFor="cookies"
+                          className="text-muted-foreground flex items-center justify-between"
+                        >
                           <span>Session Cookies</span>
-                          <span className="text-[10px] uppercase font-bold tracking-wider border border-yellow-500/20 text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded">Private Playlists</span>
+                          <span className="text-[10px] uppercase font-bold tracking-wider border border-yellow-500/20 text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded">
+                            Private Only
+                          </span>
                         </Label>
                         <Textarea
                           id="cookies"
-                          placeholder="PASTE_YOUR_YOUTUBE_COOKIE_HEADER_HERE"
+                          placeholder="Paste the cookie header value here..."
                           value={cookies}
                           onChange={(e) => setCookies(e.target.value)}
-                          className="font-mono text-xs bg-background/50 border-white/10 min-h-[100px] resize-none focus-visible:ring-primary"
+                          className="font-mono text-xs bg-background/50 border-white/10 min-h-[80px] resize-none focus-visible:ring-primary"
                           disabled={loading}
                         />
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                          Need to convert a private playlist? Open DevTools on YouTube, go to the Network tab, inspect a request, and copy the <code className="text-primary bg-primary/10 px-1 rounded">cookie</code> header value.
-                        </p>
                       </div>
                     </div>
                   )}
 
                   <Button
                     type="submit"
-                    className="w-full h-12 text-md font-semibold bg-primary hover:bg-primary/90 text-primary-foreground transition-all hover:scale-[1.02]"
+                    className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground transition-all hover:scale-[1.01] active:scale-[0.99]"
                     disabled={loading || !url}
                   >
                     {loading ? (
                       <span className="flex items-center gap-2">
                         <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-                        Generating Magic...
+                        Generating...
                       </span>
                     ) : (
                       <span className="flex items-center gap-2">
@@ -201,16 +294,16 @@ export default function Home() {
             <Card className="flex-1 flex flex-col border-white/10 bg-card/50 backdrop-blur-sm overflow-hidden shadow-2xl transition-all">
               <div className="h-14 border-b border-white/5 bg-background/50 flex items-center justify-between px-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex gap-1.5 opacity-60 hover:opacity-100 transition-opacity">
-                    <div className="w-3 h-3 rounded-full bg-red-500" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                    <div className="w-3 h-3 rounded-full bg-green-500" />
+                  <div className="flex gap-1.5 opacity-60">
+                    <div className="w-3 h-3 rounded-full bg-red-500/80" />
+                    <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                    <div className="w-3 h-3 rounded-full bg-green-500/80" />
                   </div>
                   <span className="text-sm font-medium text-muted-foreground ml-2 truncate max-w-[200px] sm:max-w-xs">
                     {resultTitle ? `${resultTitle}.md` : "Output"}
                   </span>
                 </div>
-                
+
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
@@ -219,7 +312,7 @@ export default function Home() {
                     onClick={copyToClipboard}
                     disabled={!resultMarkdown}
                   >
-                    <Copy className="h-4 w-4 mr-2" />
+                    <Copy className="h-4 w-4 mr-1.5" />
                     Copy
                   </Button>
                   <Button
@@ -229,18 +322,20 @@ export default function Home() {
                     onClick={downloadFile}
                     disabled={!resultMarkdown}
                   >
-                    <Download className="h-4 w-4 mr-2" />
+                    <Download className="h-4 w-4 mr-1.5" />
                     Download
                   </Button>
                 </div>
               </div>
-              
+
               <div className="flex-1 relative bg-[#0a0a0a]">
                 {!resultMarkdown ? (
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground opacity-50 select-none">
                     <Youtube className="h-16 w-16 mb-4 opacity-20" />
                     <p className="text-lg font-medium">Ready when you are</p>
-                    <p className="text-sm">Your markdown will appear here</p>
+                    <p className="text-sm">
+                      Your markdown will appear here
+                    </p>
                   </div>
                 ) : (
                   <ScrollArea className="h-full w-full absolute inset-0">

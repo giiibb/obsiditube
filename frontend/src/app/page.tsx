@@ -1,20 +1,20 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ObsidianCardPreview } from "@/components/ObsidianCardPreview";
-import { NotionCardPreview } from "@/components/NotionCardPreview";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { ObsidianCardPreview } from "../components/ObsidianCardPreview.tsx";
+import { NotionCardPreview } from "../components/NotionCardPreview.tsx";
+import { Button } from "../components/ui/button.tsx";
+import { Input } from "../components/ui/input.tsx";
+import { Textarea } from "../components/ui/textarea.tsx";
+import { Label } from "../components/ui/label.tsx";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
+} from "../components/ui/card.tsx";
+import { ScrollArea } from "../components/ui/scroll-area.tsx";
 import { Toaster, toast } from "sonner";
 import {
   Youtube,
@@ -110,7 +110,7 @@ export default function Home() {
     }
   };
 
-  const handleGenerate = async (e: React.FormEvent) => {
+  const handleGenerate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!url) { toast.error("Please enter a YouTube playlist URL"); return; }
     generate(url, cookies);
@@ -396,6 +396,7 @@ export default function Home() {
                   {/* Output Format Toggle: Obsidian | Notion */}
                   <div className="flex rounded-md border border-white/10 overflow-hidden mr-1.5">
                     <button
+                      type="button"
                       onClick={() => setOutputMode("obsidian")}
                       className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium transition-colors ${
                         outputMode === "obsidian"
@@ -408,6 +409,7 @@ export default function Home() {
                       Obsidian
                     </button>
                     <button
+                      type="button"
                       onClick={() => setOutputMode("notion")}
                       className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium transition-colors ${
                         outputMode === "notion"
@@ -424,6 +426,7 @@ export default function Home() {
                   {/* View Mode Toggle: Preview | Code */}
                   <div className="flex rounded-md border border-white/10 overflow-hidden mr-1.5">
                     <button
+                      type="button"
                       onClick={() => setViewMode("preview")}
                       className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium transition-colors ${
                         viewMode === "preview"
@@ -435,6 +438,7 @@ export default function Home() {
                       Preview
                     </button>
                     <button
+                      type="button"
                       onClick={() => setViewMode("code")}
                       className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium transition-colors ${
                         viewMode === "code"

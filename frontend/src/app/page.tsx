@@ -1,20 +1,20 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ObsidianCardPreview } from "../components/ObsidianCardPreview.tsx";
-import { NotionCardPreview } from "../components/NotionCardPreview.tsx";
-import { Button } from "../components/ui/button.tsx";
-import { Input } from "../components/ui/input.tsx";
-import { Textarea } from "../components/ui/textarea.tsx";
-import { Label } from "../components/ui/label.tsx";
+import { ObsidianCardPreview } from "../components/ObsidianCardPreview";
+import { NotionCardPreview } from "../components/NotionCardPreview";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Textarea } from "../components/ui/textarea";
+import { Label } from "../components/ui/label";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../components/ui/card.tsx";
-import { ScrollArea } from "../components/ui/scroll-area.tsx";
+} from "../components/ui/card";
+import { ScrollArea } from "../components/ui/scroll-area";
 import { Toaster, toast } from "sonner";
 import {
   Youtube,

@@ -380,7 +380,7 @@ export default function Home() {
           {/* Results Section */}
           <div className="lg:col-span-7 h-[600px] flex flex-col">
             <Card className="flex-1 flex flex-col border-white/10 bg-card/50 backdrop-blur-sm overflow-hidden shadow-2xl transition-all">
-              <div className="h-14 border-b border-white/5 bg-background/50 flex items-center justify-between px-4">
+              <div className="border-b border-white/5 bg-background/50 flex flex-col px-4 pt-2 pb-2 gap-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-sm font-medium text-muted-foreground truncate max-w-[200px] sm:max-w-xs">
                     {resultTitle ? resultTitle : "Output"}
@@ -392,7 +392,7 @@ export default function Home() {
                   )}
                 </div>
 
-                <div className="flex gap-1.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   {/* Output Format Toggle: Obsidian | Notion */}
                   <div className="flex rounded-md border border-white/10 overflow-hidden mr-1.5">
                     <button
@@ -471,6 +471,33 @@ export default function Home() {
                     Download
                   </Button>
                 </div>
+
+                {/* Plugin hint — centered below buttons */}
+                {resultMarkdown && (
+                  <div className="w-full flex justify-center">
+                    {outputMode === "notion" ? (
+                      <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground/70 py-0.5">
+                        <NotebookText className="h-3.5 w-3.5 flex-shrink-0 text-white/40" />
+                        <span>Paste directly into any Notion page — images &amp; checkboxes load automatically</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground/70 py-0.5">
+                        <BookMarked className="h-3.5 w-3.5 flex-shrink-0 text-primary/50" />
+                        <span>Renders in Obsidian with the</span>
+                        <a
+                          href="https://obsidian.md/plugins?id=obsidian-auto-card-link"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 font-semibold text-primary/80 hover:text-primary transition-colors underline underline-offset-2"
+                        >
+                          Auto Card Link
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                        <span>plugin</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex-1 relative bg-[#0a0a0a] overflow-y-auto">
@@ -503,31 +530,7 @@ export default function Home() {
             </Card>
           </div>
 
-          {/* Contextual hint — shown once results are visible */}
-          {resultMarkdown && (
-            <div className="lg:col-start-6 lg:col-span-7 flex items-center gap-1.5 text-[11px] text-muted-foreground/50 mt-1 px-1">
-              {outputMode === "notion" ? (
-                <>
-                  <NotebookText className="h-3 w-3 flex-shrink-0" />
-                  <span>Paste directly into any Notion page — images and checkboxes load automatically</span>
-                </>
-              ) : (
-                <>
-                  <span>Renders in Obsidian with</span>
-                  <a
-                    href="https://obsidian.md/plugins?id=obsidian-auto-card-link"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-0.5 text-primary/60 hover:text-primary transition-colors"
-                  >
-                    Auto Card Link
-                    <ExternalLink className="h-2.5 w-2.5" />
-                  </a>
-                  <span>plugin</span>
-                </>
-              )}
-            </div>
-          )}
+
         </div>
       </main>
     </div>

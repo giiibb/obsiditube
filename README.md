@@ -48,7 +48,8 @@ obsiditube/
         │   ├── layout.tsx      # Root layout, fonts, dark mode
         │   └── globals.css     # Tailwind v4 theme, dark palette with pastel red/orange
         └── components/
-            └── ObsidianCardPreview.tsx  # Renders cardlink blocks as visual cards
+            ├── ObsidianCardPreview.tsx  # Renders Obsidian cardlink blocks as visual cards
+            └── NotionCardPreview.tsx   # Renders Notion export as thumbnail cards (feature branch)
 ```
 
 ---
@@ -92,7 +93,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 **Live app:** [obsiditube.vercel.app](https://obsiditube.vercel.app)
 
-> ⚠️ The Vercel deployment only hosts the **frontend**. The backend API must be run locally for actual playlist conversion.
+> ⚠️ **The Vercel deployment hosts the frontend only.** The conversion is done by a local FastAPI backend (`uv run python dev.py`). If you're just browsing the UI online, you'll need to run the backend locally to actually convert playlists — see [Quick Start](#-quick-start-local-dev) above.
 
 ---
 

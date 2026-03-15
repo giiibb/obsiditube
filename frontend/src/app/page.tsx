@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,6 +27,8 @@ import {
   MousePointerClick,
   Search,
   ClipboardCopy,
+  Eye,
+  Code,
 } from "lucide-react";
 
 export default function Home() {
@@ -33,6 +36,7 @@ export default function Home() {
   const [cookies, setCookies] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [viewMode, setViewMode] = useState<"preview" | "code">("preview");
 
   const [loading, setLoading] = useState(false);
   const [resultTitle, setResultTitle] = useState("");
@@ -304,7 +308,32 @@ export default function Home() {
                   </span>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-1.5">
+                  {/* View Mode Toggle */}
+                  <div className="flex rounded-md border border-white/10 overflow-hidden mr-1.5">
+                    <button
+                      onClick={() => setViewMode("preview")}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium transition-colors ${
+                        viewMode === "preview"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-background/30 text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      Preview
+                    </button>
+                    <button
+                      onClick={() => setViewMode("code")}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium transition-colors ${
+                        viewMode === "code"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-background/30 text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Code className="h-3.5 w-3.5" />
+                      Code
+                    </button>
+                  </div>
                   <Button
                     variant="outline"
                     size="sm"
@@ -328,7 +357,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="flex-1 relative bg-[#0a0a0a]">
+              <div className="flex-1 relative bg-[#0a0a0a] overflow-y-auto">
                 {!resultMarkdown ? (
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground opacity-50 select-none">
                     <Youtube className="h-16 w-16 mb-4 opacity-20" />
@@ -337,12 +366,27 @@ export default function Home() {
                       Your markdown will appear here
                     </p>
                   </div>
-                ) : (
+                ) : viewMode === "code" ? (
                   <ScrollArea className="h-full w-full absolute inset-0">
                     <div className="p-4 md:p-6 pb-12 w-full min-h-full">
                       <pre className="text-sm font-mono leading-relaxed text-[#e5e5e5] whitespace-pre-wrap break-words">
                         {resultMarkdown}
                       </pre>
+                    </div>
+                  </ScrollArea>
+                ) : (
+                  <ScrollArea className="h-full w-full absolute inset-0">
+                    <div className="p-4 md:p-6 pb-12 w-full min-h-full prose prose-invert prose-sm max-w-none
+                      prose-headings:text-foreground
+                      prose-p:text-[#d4d4d4]
+                      prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+                      prose-strong:text-foreground
+                      prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs
+                      prose-pre:bg-[#111] prose-pre:border prose-pre:border-white/10 prose-pre:rounded-lg
+                      prose-li:text-[#d4d4d4] prose-li:marker:text-primary/60
+                      prose-img:rounded-lg
+                      [&_input[type=checkbox]]:accent-primary">
+                      <ReactMarkdown>{resultMarkdown}</ReactMarkdown>
                     </div>
                   </ScrollArea>
                 )}

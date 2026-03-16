@@ -60,7 +60,8 @@ export default function Home() {
     setResultTitle("");
     setResultAuthor("");
     try {
-      const res = await fetch("http://localhost:8000/api/convert", {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "";
+      const res = await fetch(`${apiBase}/api/convert`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: targetUrl, cookies: cookieStr || null }),

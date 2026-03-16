@@ -1,11 +1,5 @@
 {
-  "buildCommand": "cd frontend && npm install && npm run build",
-  "outputDirectory": "frontend/.next",
-  "functions": {
-    "api/convert.py": {
-      "runtime": "python3.12"
-    }
-  }
+  "framework": "nextjs"
 }
 
 

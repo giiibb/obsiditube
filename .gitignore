@@ -11,3 +11,5 @@ wheels/
 
 # Cache
 .http_cache
+.vercel
+.env*.local

@@ -1,17 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  async rewrites() {
-    return [
-      {
-        source: "/api/convert",
-        destination:
-          process.env.NEXT_PUBLIC_API_URL
-            ? `${process.env.NEXT_PUBLIC_API_URL}/api/convert`
-            : "http://localhost:8000/api/convert",
-      },
-    ];
-  },
+  // In production (Vercel), /api/convert is served by the Python serverless function.
+  // In local dev, proxy it to the FastAPI server running on port 8000.
+  ...(process.env.NODE_ENV === "development" && {
+    async rewrites() {
+      return [
+        {
+          source: "/api/convert",
+          destination: "http://localhost:8000/api/convert",
+        },
+      ];
+    },
+  }),
 };
 
 export default nextConfig;

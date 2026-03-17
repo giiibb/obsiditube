@@ -295,7 +295,7 @@ export default function Home() {
                   Configuration
                 </CardTitle>
                 <CardDescription>
-                  Paste a public or private playlist link.
+                  Paste a public or unlisted playlist link.
                 </CardDescription>
               </CardHeader>
               <CardContent className="relative z-10">
@@ -311,6 +311,30 @@ export default function Home() {
                       disabled={loading}
                     />
                   </div>
+
+                  {/* Pre-generation Pro Alert */}
+                  {!isValid && !licenseLoading && url && isPlaylistUrl(url) && !loading && (
+                    <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 animate-in slide-in-from-top-2 duration-300">
+                      <div className="flex items-start gap-3">
+                        <div className="mt-1 h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <Zap className="h-4 w-4 text-primary fill-current animate-pulse" />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm font-bold text-white">Pro Limit Alert</p>
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            This playlist appears to be long. Without Pro, only the first 10 videos will be converted.
+                          </p>
+                          <button 
+                            type="button"
+                            onClick={() => setIsPaywallOpen(true)}
+                            className="text-xs font-bold text-primary hover:underline mt-1 flex items-center gap-1"
+                          >
+                            Unlock unlimited access now <Star className="h-3 w-3 fill-current" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <button
                     type="button"

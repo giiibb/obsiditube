@@ -8,7 +8,7 @@
 
 | Topic | Decision | Reason |
 |---|---|---|
-| Fiat payments | **LemonSqueezy** | MoR (handles all taxes), built-in license key emails, 5% + $0.50 |
+| Fiat payments | **Creem** | MoR (handles all taxes), 3.9% + $0.40, rich developer SDKs |
 | Crypto payments | **NOWPayments** | No KYC, 300+ coins, 0.5% fee, funds to your own wallet |
 | Email (SMTP) | **Resend** | Free 3,000/mo, developer-first, only needed for crypto key delivery |
 | License key storage | **Upstash KV (Redis)** | Serverless, revocable, Vercel 1-click integration, free 10k cmds/day |
@@ -40,7 +40,7 @@ User submits playlist
   → PaywallModal opens (3 tabs)
 
 PaywallModal:
-  [💳 Card (LemonSqueezy)] [₿ Crypto (NOWPayments)] [🔑 I have a key]
+  [💳 Card (Creem)] [₿ Crypto (NOWPayments)] [🔑 I have a key]
 
 On successful payment:
   → Webhook → FastAPI → generate UUID key → store in Upstash KV → email via Resend
@@ -54,7 +54,7 @@ On successful payment:
 
 ```
 POST /api/license/validate        ← validate key from user UI input
-POST /api/webhooks/lemonsqueezy   ← fiat payment confirmed
+POST /api/webhooks/creem          ← fiat payment confirmed
 POST /api/webhooks/nowpayments    ← crypto payment confirmed
 
 MODIFIED:
@@ -84,9 +84,9 @@ POST /api/convert                 ← now checks X-License-Key header
 KV_REST_API_URL=...
 KV_REST_API_TOKEN=...
 
-# LemonSqueezy
-LEMONSQUEEZY_WEBHOOK_SECRET=...
-LEMONSQUEEZY_CHECKOUT_URL=https://giblok.lemonsqueezy.com/buy/...
+# Creem
+CREEM_API_KEY=...
+CREEM_WEBHOOK_SECRET=...
 
 # NOWPayments
 NOWPAYMENTS_API_KEY=...

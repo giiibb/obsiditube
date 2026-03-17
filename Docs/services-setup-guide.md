@@ -3,39 +3,30 @@
 
 ---
 
-## 1. LemonSqueezy (Fiat payments)
+## 1. Creem (Fiat payments)
 
 ### Create account
-1. Go to [lemonsqueezy.com](https://lemonsqueezy.com) → Sign up
+1. Go to [creem.io](https://creem.io) → Sign up
 2. Verify email
 
-### Create store
-1. Dashboard → New Store
-2. Name: `GiBlok`
-3. Currency: `USD`
-4. Save
+### Get API Keys
+1. Dashboard → API Keys
+2. Copy your Test and Live API keys
+3. Save the live key as `CREEM_API_KEY` in your `.env` file
 
 ### Create product
-1. Products → New Product
+1. You can do this via the Creem CLI or the Dashboard.
 2. Name: `ObsidiTube Pro — Lifetime Access`
-3. Price: `$9.00` · Type: `One-time`
-4. ✅ Enable **License Keys** (LemonSqueezy will email the key automatically)
-   - License key format: `Single key per order`
-   - Activations: `Unlimited` (web app, no device-binding needed)
-5. Customize licence email with GiBlok branding
-6. Publish product
-
-### Get checkout URL
-1. Products → your product → Share
-2. Copy the buy link → save as `LEMONSQUEEZY_CHECKOUT_URL`
+3. Price: `$9.00` (900 cents) · Type: `One-time`
+4. ✅ Enable **License Keys** for the product. We will generate/validate keys via Creem API.
 
 ### Set up webhook
-1. Settings → Webhooks → Add endpoint
-2. URL: `https://obsiditube.vercel.app/api/webhooks/lemonsqueezy`
-3. Events: ✅ `order_created`
-4. Copy the signing secret → save as `LEMONSQUEEZY_WEBHOOK_SECRET`
+1. Dashboard → Developers → Webhooks → Add endpoint
+2. URL: `https://obsiditube.vercel.app/api/webhooks/creem`
+3. Events: ✅ `checkout.completed`
+4. Copy the signing secret → save as `CREEM_WEBHOOK_SECRET`
 
-> **Note:** Since LemonSqueezy sends license keys by email automatically, you only need the webhook to trigger Upstash KV storage (so users can re-validate their key in the app later).
+> **Note:** Creem will handle checkout sessions and webhooks. We can use the `@creem_io/nextjs` SDK in our app to easily create checkout sessions and handle webhook access grants.
 
 ---
 
@@ -123,9 +114,9 @@ If you don't own `giblok.com` yet:
 
 ## Checklist Before Next Implementation Session
 
-- [ ] LemonSqueezy account created + product published
-- [ ] LemonSqueezy checkout URL saved
-- [ ] LemonSqueezy webhook secret saved
+- [ ] Creem account created + product published
+- [ ] Creem API key saved
+- [ ] Creem webhook secret saved
 - [ ] Resend account created + domain verified
 - [ ] Resend API key saved
 - [ ] NOWPayments account created + wallets added

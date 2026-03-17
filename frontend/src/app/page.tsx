@@ -235,7 +235,7 @@ export default function Home() {
 
       {/* Header */}
       <header className="border-b border-white/5 bg-background/40 backdrop-blur-2xl sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between relative">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-lg overflow-hidden border border-white/10 shadow-lg">
               <img src="/banner.png" alt="Logo" className="h-full w-full object-cover scale-150" />
@@ -249,6 +249,14 @@ export default function Home() {
               </span>
             )}
           </div>
+
+          {/* Catchy Center Text */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:block">
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 animate-pulse">
+              Distill Your Digital Stream
+            </span>
+          </div>
+
           <div className="flex items-center gap-4">
             {!isValid && !licenseLoading && (
               <Button 

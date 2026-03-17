@@ -132,8 +132,23 @@
     pointer-events: none;
   }
   html {
-    @apply font-sans;
+    @apply font-sans scroll-smooth;
   }
+}
+
+main {
+  mask-image: linear-gradient(to bottom, 
+    transparent 0%, 
+    black 10%, 
+    black 95%, 
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(to bottom, 
+    transparent 0%, 
+    black 10%, 
+    black 95%, 
+    transparent 100%
+  );
 }
 
 .glass-card {

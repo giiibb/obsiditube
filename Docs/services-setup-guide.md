@@ -28,10 +28,8 @@
 
 1. Dashboard → Developers → Webhooks → Add endpoint
 2. URL: `https://obsiditube.vercel.app/api/webhooks/creem`
-3. Events: ✅ `checkout.completed`
+3. Events: ✅ `checkout.completed` or `order.created`
 4. Copy the signing secret → save as `CREEM_WEBHOOK_SECRET`
-
-> **Note:** Creem will handle checkout sessions and webhooks. We can use the `@creem_io/nextjs` SDK in our app to easily create checkout sessions and handle webhook access grants.
 
 ---
 
@@ -45,7 +43,7 @@
 ### Add your domain
 
 1. Resend Dashboard → Domains → Add Domain
-2. Enter: `giblok.com`
+2. Enter: `giblok.com` (or your domain)
 3. Add the DNS records shown (TXT + MX) to your domain registrar
 4. Wait for verification (usually < 5 minutes)
 
@@ -111,33 +109,17 @@ RESEND_FROM=noreply@giblok.com
 - 256MB storage
 - No credit card required
 
-### Alternative (standalone Upstash)
-
-1. Go to [upstash.com](https://upstash.com) → Sign up
-2. Create → Redis database → `obsiditube-kv`
-3. Copy REST URL + Token → add to Vercel env vars
-
----
-
-## 5. Domain (if needed)
-
-If you don't own `giblok.com` yet:
-
-- Register at [namecheap.com](https://namecheap.com) (~$10/yr)
-- Or Cloudflare Registrar (at cost, cheapest)
-- Point nameservers to where your email DNS will live
-
 ---
 
 ## Checklist Before Next Implementation Session
 
-- [ ] Creem account created + product published
-- [ ] Creem API key saved
-- [ ] Creem webhook secret saved
-- [ ] Resend account created + domain verified
-- [ ] Resend API key saved
-- [ ] NOWPayments account created + wallets added
-- [ ] NOWPayments API key + IPN secret saved
-- [ ] Upstash KV created via Vercel (or standalone)
-- [ ] All env vars added to Vercel project settings
-- [ ] `.env.local` file created locally with same vars
+- [x] Creem account created + product published
+- [x] Creem API key saved
+- [x] Creem webhook secret saved
+- [x] Resend account created + domain verified
+- [x] Resend API key saved
+- [x] NOWPayments account created + wallets added
+- [x] NOWPayments API key + IPN secret saved
+- [x] Upstash KV created via Vercel (or standalone)
+- [x] All env vars added to Vercel project settings
+- [x] `.env.local` file created locally with same vars

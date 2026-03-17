@@ -31,7 +31,7 @@ function parseCards(markdown: string): CardData[] {
 
     cards.push({
       index,
-      title: get("title") || title,
+      title: get("title") || titleFromHeader,
       url: get("url"),
       host: get("host"),
       favicon: get("favicon"),

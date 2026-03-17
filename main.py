@@ -153,10 +153,7 @@ def main(
             )
         )
 
-        # Extract Playlist Metadata
         title = utils.get_nested_item(ytInitialData, "metadata", "playlistMetadataRenderer", "title")
-        
-        # Get Sidebar Info for YAML
         try:
             sidebar_primary = utils.get_nested_item(
                 ytInitialData, "sidebar", "playlistSidebarRenderer", "items", 
@@ -166,16 +163,15 @@ def main(
             stats = sidebar_primary.get("stats", [])
             video_count_text = stats[0].get("runs", [{}])[0].get("text", "0") if len(stats) > 0 else "0"
             view_count = stats[1].get("simpleText", "") if len(stats) > 1 else ""
-            last_updated = "".join([r.get("text", "") for r in stats[2].get("runs", [])]) if len(stats) > 2 else ""
+            last_updated = ""
+            for s in stats:
+                if "Updated" in str(s):
+                    last_updated = "".join([r.get("text", "") for r in s.get("runs", [])])
         except Exception:
             description, video_count_text, view_count, last_updated = "", "0", "", ""
 
-        # Get Author
         try:
-            author = utils.get_nested_item(
-                ytInitialData, "header", "playlistHeaderRenderer", "ownerText", "runs", 
-                utils.ListExactlyOne, "text"
-            )
+            author = utils.get_nested_item(ytInitialData, "header", "playlistHeaderRenderer", "ownerText", "runs", utils.ListExactlyOne, "text")
         except Exception:
             author = ""
 
@@ -229,8 +225,6 @@ def main(
     for content in contents:
         continuationItemRenderer = content.get("continuationItemRenderer")
         if continuationItemRenderer is not None:
-            # Note: The CLI currently doesn't fetch metadata for continuations as deeply
-            # but we pass what we have.
             continuation_videos = fetch_continuation(
                 session,
                 playlist_id,
@@ -249,28 +243,19 @@ def main(
                 cards.append(make_card(playlist_id, v["index"], v["video_id"], v["title"]))
                 video_index += 1
         else:
-            pvr = content["playlistVideoRenderer"]
+            pvr = content.get("playlistVideoRenderer")
+            if not pvr: continue
+            
             video_id = pvr["videoId"]
             v_title = utils.get_nested_item(pvr, "title", "runs", utils.ListExactlyOne, "text")
-            
-            # Extract Video Metadata
             duration = pvr.get("lengthText", {}).get("simpleText", "")
             v_stats = pvr.get("videoInfo", {}).get("runs", [])
             v_views = v_stats[0].get("text", "") if len(v_stats) > 0 else ""
             v_date = v_stats[2].get("text", "") if len(v_stats) > 2 else ""
 
-            cards.append(make_card(
-                playlist_id=playlist_id,
-                index=video_index,
-                video_id=video_id,
-                title=v_title,
-                duration=duration,
-                views=v_views,
-                publish_date=v_date
-            ))
+            cards.append(make_card(playlist_id, video_index, video_id, v_title, duration, v_views, v_date))
             video_index += 1
 
-    # Final Result with YAML
     result = generate_yaml_properties(playlist_metadata) + "\n\n" + "\n".join(cards)
 
     if stdout:

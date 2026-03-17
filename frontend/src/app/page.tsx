@@ -234,15 +234,17 @@ export default function Home() {
       <PaywallModal isOpen={isPaywallOpen} onClose={() => setIsPaywallOpen(false)} />
 
       {/* Header */}
-      <header className="border-b border-white/5 bg-background/50 backdrop-blur-xl sticky top-0 z-50">
+      <header className="border-b border-white/5 bg-background/40 backdrop-blur-2xl sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <Youtube className="h-6 w-6 text-primary" />
-            <span className="font-bold tracking-tight text-lg">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg overflow-hidden border border-white/10 shadow-lg">
+              <img src="/banner.png" alt="Logo" className="h-full w-full object-cover scale-150" />
+            </div>
+            <span className="font-bold tracking-tight text-xl bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
               Obsidi<span className="text-primary">Tube</span>
             </span>
             {isValid && (
-              <span className="ml-2 px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-bold uppercase tracking-wider">
+              <span className="ml-2 px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[9px] font-black uppercase tracking-widest border border-primary/20">
                 Pro
               </span>
             )}
@@ -253,17 +255,17 @@ export default function Home() {
                 variant="ghost" 
                 size="sm" 
                 onClick={() => setIsPaywallOpen(true)}
-                className="text-primary hover:text-primary hover:bg-primary/10 font-bold text-xs gap-1.5"
+                className="text-primary hover:text-primary hover:bg-primary/10 font-bold text-xs gap-1.5 transition-all hover:scale-105"
               >
                 <Zap className="h-3.5 w-3.5 fill-current" />
-                Upgrade to Pro
+                Upgrade
               </Button>
             )}
             <a
               href="https://github.com/giiibb/obsiditube"
               target="_blank"
               rel="noreferrer"
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-all hover:rotate-12"
             >
               <Github className="h-5 w-5" />
             </a>
@@ -272,24 +274,24 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-12 max-w-5xl pb-24">
-        <div className="text-center mb-12 space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium border border-primary/20 mb-4 shadow-[0_0_20px_rgba(200,100,60,0.15)]">
-            <Wand2 className="h-4 w-4" />
-            <span>Turn playlists into actionable tasks</span>
+      <main className="container mx-auto px-4 py-16 max-w-5xl pb-24 relative">
+        <div className="text-center mb-16 space-y-6">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/5 text-primary text-[13px] font-semibold border border-primary/10 mb-2 shadow-[0_0_30px_rgba(200,100,60,0.1)] animate-in fade-in zoom-in duration-700">
+            <Wand2 className="h-3.5 w-3.5" />
+            <span className="tracking-wide">Evolution of Playlist Management</span>
           </div>
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight bg-gradient-to-br from-white via-white/80 to-white/30 bg-clip-text text-transparent pb-1">
+          <h1 className="text-5xl md:text-7xl font-black tracking-tight bg-gradient-to-b from-white via-white to-white/20 bg-clip-text text-transparent pb-2 drop-shadow-2xl">
             YouTube to Obsidian
           </h1>
-          <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
-            Convert any YouTube playlist into beautifully formatted Obsidian
-            checklist cards. Fast, frictionless, secure.
+          <p className="text-muted-foreground/80 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed font-medium">
+            Transform chaotic playlists into structured, actionable checklists. 
+            Designed for the modern knowledge worker of 2026.
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           <div className="lg:col-span-5 space-y-6">
-            <Card className="border-white/10 bg-card/50 backdrop-blur-md shadow-2xl relative overflow-hidden">
+            <Card className="glass-card relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-50" />
 
               <CardHeader className="relative z-10">
@@ -309,7 +311,7 @@ export default function Home() {
                       placeholder="https://youtube.com/playlist?list=..."
                       value={url}
                       onChange={(e) => handleUrlChange(e.target.value)}
-                      className="bg-background/50 border-white/10 focus-visible:ring-primary h-12 text-base transition-all"
+                      className="bg-background/40 border-white/5 focus-visible:ring-primary h-12 text-base transition-all"
                       disabled={loading}
                     />
                   </div>
@@ -349,7 +351,7 @@ export default function Home() {
 
                   {showAdvanced && (
                     <div className="space-y-4 animate-in slide-in-from-top-2 fade-in duration-200">
-                      <div className="rounded-lg border border-white/10 bg-background/30 overflow-hidden">
+                      <div className="rounded-lg border border-white/5 bg-background/20 overflow-hidden">
                         <button
                           type="button"
                           onClick={() => setShowGuide(!showGuide)}
@@ -376,7 +378,7 @@ export default function Home() {
                             <div className="pt-2">
                               <div 
                                 onClick={copySnippet}
-                                className="group relative bg-black/40 border border-white/10 rounded-lg p-3 cursor-pointer hover:bg-black/60 transition-all"
+                                className="group relative bg-black/40 border border-white/5 rounded-lg p-3 cursor-pointer hover:bg-black/60 transition-all"
                               >
                                 <code className="text-[10px] font-mono text-primary/90 break-all leading-tight">
                                   {COOKIE_SNIPPET}
@@ -405,7 +407,7 @@ export default function Home() {
                           placeholder="Paste the cookie header value here..."
                           value={cookies}
                           onChange={(e) => setCookies(e.target.value)}
-                          className="font-mono text-xs bg-background/50 border-white/10 min-h-[80px] resize-none focus-visible:ring-primary"
+                          className="font-mono text-xs bg-background/40 border-white/5 min-h-[80px] resize-none focus-visible:ring-primary"
                           disabled={loading}
                         />
                       </div>
@@ -414,18 +416,18 @@ export default function Home() {
 
                   {resultMarkdown ? (
                     <div className="flex gap-2">
-                      <Button type="button" onClick={copyToClipboard} className="flex-1 h-12 text-base font-semibold bg-primary hover:bg-primary/90">
+                      <Button type="button" onClick={copyToClipboard} className="flex-1 h-12 text-base font-semibold bg-primary hover:bg-primary/90 transition-all hover:scale-[1.02]">
                         <Copy className="h-5 w-5 mr-2" /> Copy
                       </Button>
-                      <Button type="button" onClick={() => downloadFile("md")} className="flex-1 h-12 text-base font-semibold bg-primary hover:bg-primary/90">
+                      <Button type="button" onClick={() => downloadFile("md")} className="flex-1 h-12 text-base font-semibold bg-primary hover:bg-primary/90 transition-all hover:scale-[1.02]">
                         <Download className="h-5 w-5 mr-2" /> Download
                       </Button>
-                      <Button type="submit" variant="outline" size="icon" className="h-12 w-12 border-white/10 bg-background/30" disabled={loading || !url}>
+                      <Button type="submit" variant="outline" size="icon" className="h-12 w-12 border-white/5 bg-background/20" disabled={loading || !url}>
                         {loading ? <Loader2 className="animate-spin h-5 w-5" /> : <Wand2 className="h-5 w-5" />}
                       </Button>
                     </div>
                   ) : (
-                    <Button type="submit" className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90" disabled={loading || !url}>
+                    <Button type="submit" className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 transition-all hover:scale-[1.01]" disabled={loading || !url}>
                       {loading ? (
                         <span className="flex items-center gap-2"><Loader2 className="animate-spin h-4 w-4" /> Generating...</span>
                       ) : (
@@ -438,7 +440,7 @@ export default function Home() {
             </Card>
 
             {isValid && resultMarkdown && (
-              <Card className="border-white/10 bg-card/50 backdrop-blur-md relative overflow-hidden">
+              <Card className="glass-card relative overflow-hidden">
                 <CardHeader className="py-4">
                   <CardTitle className="text-sm flex items-center gap-2">
                     <Star className="h-4 w-4 text-primary fill-current" />
@@ -446,11 +448,11 @@ export default function Home() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 gap-2 pb-4">
-                  <Button variant="outline" size="sm" onClick={() => downloadFile("csv")} className="h-10 border-white/5 bg-white/5 hover:bg-white/10">
+                  <Button variant="outline" size="sm" onClick={() => downloadFile("csv")} className="h-10 border-white/5 bg-white/5 hover:bg-white/10 transition-all hover:scale-[1.02]">
                     <FileSpreadsheet className="h-4 w-4 mr-2 text-green-500" />
                     Export CSV
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => downloadFile("json")} className="h-10 border-white/5 bg-white/5 hover:bg-white/10">
+                  <Button variant="outline" size="sm" onClick={() => downloadFile("json")} className="h-10 border-white/5 bg-white/5 hover:bg-white/10 transition-all hover:scale-[1.02]">
                     <FileJson className="h-4 w-4 mr-2 text-yellow-500" />
                     Export JSON
                   </Button>
@@ -460,8 +462,8 @@ export default function Home() {
           </div>
 
           <div className="lg:col-span-7 h-[600px] flex flex-col">
-            <Card className="flex-1 flex flex-col border-white/10 bg-card/50 backdrop-blur-sm overflow-hidden shadow-2xl transition-all">
-              <div className="border-b border-white/5 bg-background/50 flex flex-col px-4 pt-2 pb-2 gap-2">
+            <Card className="flex-1 flex flex-col glass-card overflow-hidden shadow-2xl transition-all">
+              <div className="border-b border-white/5 bg-background/30 flex flex-col px-4 pt-2 pb-2 gap-2">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-sm font-medium text-muted-foreground truncate max-w-[200px] sm:max-w-xs">
@@ -482,45 +484,45 @@ export default function Home() {
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex rounded-md border border-white/10 overflow-hidden mr-1.5">
+                  <div className="flex rounded-md border border-white/5 overflow-hidden mr-1.5">
                     <button
                       onClick={() => setOutputMode("obsidian")}
-                      className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium transition-colors ${outputMode === "obsidian" ? "bg-primary text-primary-foreground" : "bg-background/30 text-muted-foreground hover:text-foreground"}`}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium transition-colors ${outputMode === "obsidian" ? "bg-primary text-primary-foreground" : "bg-background/20 text-muted-foreground hover:text-foreground"}`}
                     >
                       <BookMarked className="h-3.5 w-3.5" /> Obsidian
                     </button>
                     <button
                       onClick={() => setOutputMode("notion")}
-                      className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium transition-colors ${outputMode === "notion" ? "bg-[#ffffff] text-[#191919]" : "bg-background/30 text-muted-foreground hover:text-foreground"}`}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium transition-colors ${outputMode === "notion" ? "bg-[#ffffff] text-[#191919]" : "bg-background/20 text-muted-foreground hover:text-foreground"}`}
                     >
                       <NotebookText className="h-3.5 w-3.5" /> Notion
                     </button>
                   </div>
 
-                  <div className="flex rounded-md border border-white/10 overflow-hidden mr-1.5">
+                  <div className="flex rounded-md border border-white/5 overflow-hidden mr-1.5">
                     <button
                       onClick={() => setViewMode("preview")}
-                      className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium transition-colors ${viewMode === "preview" ? "bg-primary text-primary-foreground" : "bg-background/30 text-muted-foreground hover:text-foreground"}`}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium transition-colors ${viewMode === "preview" ? "bg-primary text-primary-foreground" : "bg-background/20 text-muted-foreground hover:text-foreground"}`}
                     >
                       <Eye className="h-3.5 w-3.5" /> Preview
                     </button>
                     <button
                       onClick={() => setViewMode("code")}
-                      className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium transition-colors ${viewMode === "code" ? "bg-primary text-primary-foreground" : "bg-background/30 text-muted-foreground hover:text-foreground"}`}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium transition-colors ${viewMode === "code" ? "bg-primary text-primary-foreground" : "bg-background/20 text-muted-foreground hover:text-foreground"}`}
                     >
                       <Code className="h-3.5 w-3.5" /> Code
                     </button>
                   </div>
-                  <Button variant="outline" size="sm" className="h-8 border-white/10 bg-background/30 hover:bg-primary hover:text-primary-foreground" onClick={copyToClipboard} disabled={!resultMarkdown}>
+                  <Button variant="outline" size="sm" className="h-8 border-white/5 bg-background/20 hover:bg-primary hover:text-primary-foreground" onClick={copyToClipboard} disabled={!resultMarkdown}>
                     <Copy className="h-4 w-4 mr-1.5" /> Copy
                   </Button>
-                  <Button variant="outline" size="sm" className="h-8 border-white/10 bg-background/30 hover:bg-primary hover:text-primary-foreground" onClick={() => downloadFile("md")} disabled={!resultMarkdown}>
+                  <Button variant="outline" size="sm" className="h-8 border-white/5 bg-background/20 hover:bg-primary hover:text-primary-foreground" onClick={() => downloadFile("md")} disabled={!resultMarkdown}>
                     <Download className="h-4 w-4 mr-1.5" /> Download
                   </Button>
                 </div>
               </div>
 
-              <div className="flex-1 relative bg-[#0a0a0a] overflow-y-auto">
+              <div className="flex-1 relative bg-black/20 overflow-y-auto">
                 {isTruncated && (
                   <div className="sticky top-0 z-20 w-full px-4 py-3 bg-gradient-to-r from-primary/20 via-primary/30 to-primary/20 backdrop-blur-md border-b border-primary/20 flex items-center justify-between shadow-lg">
                     <div className="flex items-center gap-3">
@@ -548,10 +550,10 @@ export default function Home() {
                 )}
 
                 {!resultMarkdown ? (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground opacity-50 select-none">
-                    <Youtube className="h-16 w-16 mb-4 opacity-20" />
-                    <p className="text-lg font-medium">Ready when you are</p>
-                    <p className="text-sm">Your markdown will appear here</p>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/30 select-none">
+                    <img src="/banner.png" alt="Empty Logo" className="h-24 w-24 mb-6 opacity-10 grayscale invert" />
+                    <p className="text-xl font-bold tracking-tight">Ready for deployment</p>
+                    <p className="text-sm font-medium">Paste a URL to start the conversion</p>
                   </div>
                 ) : viewMode === "code" ? (
                   <ScrollArea className="h-full w-full absolute inset-0">
@@ -596,7 +598,7 @@ export default function Home() {
   );
 }
 
-function Loader2(props: React.SVG_Props<SVGSVGElement>) {
+function Loader2(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}

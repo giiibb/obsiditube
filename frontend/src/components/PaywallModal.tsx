@@ -51,7 +51,7 @@ export function PaywallModal({ isOpen, onClose }: PaywallModalProps) {
     // In production, this would call our backend to get a checkout URL
     // For now, redirect to the product page or use the API
     toast.info("Redirecting to secure checkout...");
-    window.open("https://creem.io/p/prod_obsiditube", "_blank");
+    window.open("https://creem.io/product/prod_35W72uggeTpfYyshmLBlFM", "_blank");
   };
 
   const FEATURES = [

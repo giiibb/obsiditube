@@ -96,13 +96,7 @@ def convert_playlist(
             )
             title = utils.get_nested_item(ytInitialData, "metadata", "playlistMetadataRenderer", "title")
             
-            # Author
-            try:
-                author = utils.get_nested_item(ytInitialData, "header", "playlistHeaderRenderer", "ownerText", "runs", utils.ListExactlyOne, "text")
-            except Exception:
-                author = ""
-
-            # Extra Playlist Metadata for YAML
+            # Playlist Metadata for YAML
             try:
                 sidebar_primary = utils.get_nested_item(
                     ytInitialData, "sidebar", "playlistSidebarRenderer", "items", 
@@ -112,9 +106,17 @@ def convert_playlist(
                 stats = sidebar_primary.get("stats", [])
                 video_count_text = stats[0].get("runs", [{}])[0].get("text", "0") if len(stats) > 0 else "0"
                 view_count = stats[1].get("simpleText", "") if len(stats) > 1 else ""
-                last_updated = "".join([r.get("text", "") for r in stats[2].get("runs", [])]) if len(stats) > 2 else ""
+                last_updated = ""
+                for s in stats:
+                    if "Updated" in str(s):
+                        last_updated = "".join([r.get("text", "") for r in s.get("runs", [])])
             except Exception:
                 description, video_count_text, view_count, last_updated = "", "0", "", ""
+
+            try:
+                author = utils.get_nested_item(ytInitialData, "header", "playlistHeaderRenderer", "ownerText", "runs", utils.ListExactlyOne, "text")
+            except Exception:
+                author = ""
 
             playlist_metadata = {
                 "id": playlist_id,
@@ -160,12 +162,14 @@ def convert_playlist(
                         utils.ListExactlyOneChildDictKey, "continuationCommand", "token"
                     )
                 )
-                for video_info in continuation_videos:
-                    cards.append(make_card(video_info["playlist_id"], video_info["index"], video_info["video_id"], video_info["title"]))
-                    notion_cards.append(make_notion_card(video_info["playlist_id"], video_info["index"], video_info["video_id"], video_info["title"]))
+                for v in continuation_videos:
                     total_processed += 1
+                    cards.append(make_card(v["playlist_id"], v["index"], v["video_id"], v["title"]))
+                    notion_cards.append(make_notion_card(v["playlist_id"], v["index"], v["video_id"], v["title"]))
             else:
-                pvr = content["playlistVideoRenderer"]
+                pvr = content.get("playlistVideoRenderer")
+                if not pvr: continue
+                
                 total_processed += 1
                 video_id = pvr["videoId"]
                 v_title = utils.get_nested_item(pvr, "title", "runs", utils.ListExactlyOne, "text")

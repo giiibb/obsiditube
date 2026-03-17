@@ -1,0 +1,42 @@
+Installed and configured Vercel Speed Insights for the ObsidiTube Next.js project.
+
+## Changes Made
+
+### 1. Package Installation
+- Installed `@vercel/speed-insights` package using npm
+- Updated package.json with the new dependency
+- Updated package-lock.json with dependency tree
+
+### 2. SpeedInsights Component Configuration
+Modified: `frontend/src/app/layout.tsx`
+- Added import statement: `import { SpeedInsights } from '@vercel/speed-insights/next';`
+- Added `<SpeedInsights />` component inside the `<body>` tag after children
+
+## Implementation Details
+
+Following the official Vercel documentation (https://vercel.com/docs/speed-insights/quickstart), I implemented the Next.js App Router (v13.5+) setup:
+
+1. **Framework Detection**: Identified this as a Next.js 16.1.6 project using the App Router
+2. **Package Installation**: Used npm to install the Speed Insights package
+3. **Component Integration**: Added the SpeedInsights component to the root layout file, placing it at the end of the body tag to ensure it doesn't block rendering
+
+The SpeedInsights component will automatically:
+- Inject the necessary tracking script
+- Collect Core Web Vitals metrics (LCP, FID, CLS, etc.)
+- Report performance data to Vercel's Speed Insights dashboard
+
+## Verification
+
+✅ Build completed successfully with no errors
+✅ Linter passed with no errors
+✅ TypeScript compilation successful
+✅ All dependencies properly installed
+
+## Next Steps for the User
+
+To activate Speed Insights:
+1. Deploy the application to Vercel
+2. Enable Speed Insights in the Vercel dashboard for your project
+3. Performance metrics will start appearing after users visit the site
+
+Note: Speed Insights data collection only works on Vercel-deployed applications.

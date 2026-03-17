@@ -25,16 +25,16 @@ function parseNotionCards(notion: string): NotionCard[] {
     if (lines.length < 2) continue;
 
     // Parse image line: ![title](url)
-    const imgMatch = lines[0].match(/^!\[(.+?)\]\((.+?)\)$/);
+    const imgMatch = lines[0].match(/^!\[(.*?)\]\((.+?)\)$/);
     // Parse checkbox line: - [ ] [N. **title** (meta)](url)
-    // Updated to make the metadata/suffix optional
-    const cbMatch = lines[1].match(/^- \[ \] \[(\d+)\. \*\*(.+?)\*\*(?:.*?)?\]\((.+?)\)$/);
+    const cbMatch = lines[1].match(/^- \[ \] \[(?:.*?)?(\d+)\.\s*(.*?)\s*\]\((.+?)\)$/);
 
     if (!imgMatch || !cbMatch) continue;
 
     const thumbUrl = imgMatch[2];
     const index = parseInt(cbMatch[1], 10);
-    const title = cbMatch[2].replace(/\\\[/g, "[").replace(/\\\]/g, "]");
+    // Clean up title (remove markdown bolding if present)
+    const title = cbMatch[2].replace(/\*\*/g, "").replace(/\\\[/g, "[").replace(/\\\]/g, "]");
     const videoUrl = cbMatch[3];
 
     // Extract video ID from thumbnail URL: .../vi/VIDEO_ID/hqdefault.jpg

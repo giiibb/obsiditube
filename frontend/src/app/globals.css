@@ -137,18 +137,22 @@
 }
 
 main {
+  /* Using rem for consistent fade size regardless of page length */
   mask-image: linear-gradient(to bottom, 
-    transparent 0%, 
-    black 10%, 
-    black 95%, 
+    transparent 0rem, 
+    black 4rem, 
+    black calc(100% - 4rem), 
     transparent 100%
   );
   -webkit-mask-image: linear-gradient(to bottom, 
-    transparent 0%, 
-    black 10%, 
-    black 95%, 
+    transparent 0rem, 
+    black 4rem, 
+    black calc(100% - 4rem), 
     transparent 100%
   );
+  /* Ensure the mask applies to the content as it scrolls */
+  mask-attachment: fixed;
+  -webkit-mask-attachment: fixed;
 }
 
 .glass-card {

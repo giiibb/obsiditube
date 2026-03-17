@@ -251,7 +251,7 @@ export default function Home() {
           </div>
 
           {/* Catchy Center Text */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:block">
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:block pointer-events-none select-none">
             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 animate-pulse">
               Distill Your Digital Stream
             </span>

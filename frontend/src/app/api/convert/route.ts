@@ -77,6 +77,37 @@ function generateYamlProperties(meta: any): string {
   ].join("\n");
 }
 
+/**
+ * Resiliently finds the playlist videos list in the nested JSON structure.
+ */
+function findContents(data: any): any[] {
+  // Path 1: Standard Desktop Web
+  try {
+    const c = data?.contents?.twoColumnBrowseResultsRenderer?.tabs?.[0]?.tabRenderer?.content?.sectionListRenderer?.contents?.[0]?.itemSectionRenderer?.contents?.[0]?.playlistVideoListRenderer?.contents;
+    if (Array.isArray(c)) return c;
+  } catch (e) {}
+
+  // Path 2: Mobile / Alternative structure
+  try {
+    const c = data?.contents?.singleColumnBrowseResultsRenderer?.tabs?.[0]?.tabRenderer?.content?.sectionListRenderer?.contents?.[0]?.itemSectionRenderer?.contents?.[0]?.playlistVideoListRenderer?.contents;
+    if (Array.isArray(c)) return c;
+  } catch (e) {}
+
+  // Path 3: Search for any playlistVideoListRenderer deep in the object
+  function deepSearch(obj: any): any[] | null {
+    if (!obj || typeof obj !== 'object') return null;
+    if (obj.playlistVideoListRenderer?.contents) return obj.playlistVideoListRenderer.contents;
+    
+    for (const key in obj) {
+      const result = deepSearch(obj[key]);
+      if (result) return result;
+    }
+    return null;
+  }
+
+  return deepSearch(data) || [];
+}
+
 async function fetchContinuation(
   playlistId: string, 
   token: string, 
@@ -194,7 +225,7 @@ export async function POST(request: NextRequest) {
       view_count: viewCount, last_updated: lastUpdated
     };
 
-    const contents = data?.contents?.twoColumnBrowseResultsRenderer?.tabs?.[0]?.tabRenderer?.content?.sectionListRenderer?.contents?.[0]?.itemSectionRenderer?.contents?.[0]?.playlistVideoListRenderer?.contents ?? [];
+    const contents = findContents(data);
 
     const cards: string[] = [];
     const notionCards: string[] = [];

@@ -210,17 +210,43 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(cached);
     }
 
-    const resp = await fetch(`https://www.youtube.com/playlist?list=${playlistId}`, { headers: buildHeaders(cookies) });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
+    let resp;
+    try {
+      resp = await fetch(`https://www.youtube.com/playlist?list=${playlistId}`, { 
+        headers: buildHeaders(cookies),
+        signal: controller.signal
+      });
+    } catch (fetchErr: any) {
+      if (fetchErr.name === 'AbortError') {
+        return NextResponse.json({ detail: "YouTube request timed out. The playlist might be too large or YouTube is slow." }, { status: 504 });
+      }
+      throw fetchErr;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+      
     if (!resp.ok) return NextResponse.json({ detail: "YouTube request failed" }, { status: 400 });
-    
-    const html = await resp.text();
-    const marker = "var ytInitialData = ";
-    const start = html.indexOf(marker);
-    const jsonStart = start + marker.length;
-    const scriptEnd = html.indexOf("</script>", jsonStart);
-    let jsonStr = html.slice(jsonStart, scriptEnd).trim();
-    if (jsonStr.endsWith(";")) jsonStr = jsonStr.slice(0, -1);
-    const data = JSON.parse(jsonStr);
+      
+      const html = await resp.text();
+      const marker = "var ytInitialData = ";
+      const start = html.indexOf(marker);
+      if (start === -1) {
+        return NextResponse.json({ detail: "YouTube data not found. Try providing cookies for restricted playlists." }, { status: 400 });
+      }
+      const jsonStart = start + marker.length;
+      const scriptEnd = html.indexOf("</script>", jsonStart);
+      let jsonStr = html.slice(jsonStart, scriptEnd).trim();
+      if (jsonStr.endsWith(";")) jsonStr = jsonStr.slice(0, -1);
+      
+      let data;
+      try {
+        data = JSON.parse(jsonStr);
+      } catch (parseErr) {
+        return NextResponse.json({ detail: "Failed to parse YouTube data structure." }, { status: 500 });
+      }
 
     const title = data?.metadata?.playlistMetadataRenderer?.title ?? 
                   data?.header?.playlistHeaderRenderer?.title?.simpleText ?? 

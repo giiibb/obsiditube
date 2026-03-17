@@ -26,8 +26,9 @@ function parseNotionCards(notion: string): NotionCard[] {
 
     // Parse image line: ![title](url)
     const imgMatch = lines[0].match(/^!\[(.+?)\]\((.+?)\)$/);
-    // Parse checkbox line: - [ ] [N. **title**](url)
-    const cbMatch = lines[1].match(/^- \[ \] \[(\d+)\. \*\*(.+?)\*\*\]\((.+?)\)$/);
+    // Parse checkbox line: - [ ] [N. **title** (meta)](url)
+    // Updated to make the metadata/suffix optional
+    const cbMatch = lines[1].match(/^- \[ \] \[(\d+)\. \*\*(.+?)\*\*(?:.*?)?\]\((.+?)\)$/);
 
     if (!imgMatch || !cbMatch) continue;
 

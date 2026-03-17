@@ -11,15 +11,15 @@ interface CardData {
 
 function parseCards(markdown: string): CardData[] {
   const cards: CardData[] = [];
-  // Split on cardlink fences
+  // Updated regex to support metadata like duration/views before the title
   const cardlinkRegex =
-    /(\d+)\.\s*\[\s*\]\s*\*\*"(.+?)"\*\*\s*```cardlink\s*([\s\S]*?)```/g;
+    /(\d+)\.\s*\[\s*\]\s*(?:.*?)?(\*\*)?"(.+?)"\2\s*```cardlink\s*([\s\S]*?)```/g;
 
   let match;
   while ((match = cardlinkRegex.exec(markdown)) !== null) {
     const index = parseInt(match[1], 10);
-    const title = match[2];
-    const body = match[3];
+    const title = match[3];
+    const body = match[4];
 
     const get = (key: string) => {
       const m = body.match(new RegExp(`^${key}:\\s*(.+)$`, "m"));

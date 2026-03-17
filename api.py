@@ -7,13 +7,6 @@ Exposes a single REST endpoint that wraps the original CLI scraping logic:
     body: { url: str, cookies?: str }
     headers: { X-License-Key: str }
     response: { markdown: str, notion: str, title: str, author: str, total_count: int, truncated: bool }
-
-  POST /api/license/validate
-    body: { license_key: str }
-    response: { valid: bool, data?: dict }
-
-  POST /api/webhooks/creem
-  POST /api/webhooks/nowpayments
 """
 
 import json
@@ -21,6 +14,7 @@ from fastapi import FastAPI, HTTPException, Header, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Annotated, Dict, Any
+from textwrap import dedent
 
 from src.config import create_session
 from src.parser import (
@@ -37,12 +31,12 @@ from src.webhooks import (
     provision_license,
     send_license_email
 )
-from main import make_card, make_notion_card
+from main import make_card, make_notion_card, generate_yaml_properties
 
 app = FastAPI(
     title="ObsidiTube API",
     description="Convert YouTube playlists to Obsidian cardlink markdown.",
-    version="1.1.0",
+    version="1.2.0",
 )
 
 # Allow all origins so the Next.js dev server and Vercel frontend can reach this.
@@ -85,7 +79,7 @@ def convert_playlist(
     req: ConvertRequest, 
     x_license_key: Annotated[str | None, Header()] = None
 ):
-    """Main conversion endpoint with Paywall truncation."""
+    """Main conversion endpoint with Paywall truncation and Metadata."""
     try:
         playlist_id = parser_url_and_get_playlist_id(req.url)
     except ParserError as e:
@@ -101,10 +95,37 @@ def convert_playlist(
                 get_json_from_content(resp.content, name=b"var ytInitialData = ", prefix=b"", postfix=b"")
             )
             title = utils.get_nested_item(ytInitialData, "metadata", "playlistMetadataRenderer", "title")
+            
+            # Author
             try:
                 author = utils.get_nested_item(ytInitialData, "header", "playlistHeaderRenderer", "ownerText", "runs", utils.ListExactlyOne, "text")
             except Exception:
                 author = ""
+
+            # Extra Playlist Metadata for YAML
+            try:
+                sidebar_primary = utils.get_nested_item(
+                    ytInitialData, "sidebar", "playlistSidebarRenderer", "items", 
+                    utils.ListExactlyOneChildDictKey, "playlistSidebarPrimaryInfoRenderer"
+                )
+                description = sidebar_primary.get("description", {}).get("simpleText", "")
+                stats = sidebar_primary.get("stats", [])
+                video_count_text = stats[0].get("runs", [{}])[0].get("text", "0") if len(stats) > 0 else "0"
+                view_count = stats[1].get("simpleText", "") if len(stats) > 1 else ""
+                last_updated = "".join([r.get("text", "") for r in stats[2].get("runs", [])]) if len(stats) > 2 else ""
+            except Exception:
+                description, video_count_text, view_count, last_updated = "", "0", "", ""
+
+            playlist_metadata = {
+                "id": playlist_id,
+                "title": title,
+                "author": author,
+                "description": description,
+                "video_count": int(''.join(filter(str.isdigit, video_count_text)) or 0),
+                "view_count": view_count,
+                "last_updated": last_updated
+            }
+
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to fetch initial page: {str(e)}")
 
@@ -146,21 +167,32 @@ def convert_playlist(
             else:
                 pvr = content["playlistVideoRenderer"]
                 total_processed += 1
-                cards.append(make_card(playlist_id, total_processed, pvr["videoId"], utils.get_nested_item(pvr, "title", "runs", utils.ListExactlyOne, "text")))
-                notion_cards.append(make_notion_card(playlist_id, total_processed, pvr["videoId"], utils.get_nested_item(pvr, "title", "runs", utils.ListExactlyOne, "text")))
+                video_id = pvr["videoId"]
+                v_title = utils.get_nested_item(pvr, "title", "runs", utils.ListExactlyOne, "text")
+                
+                # Video Metadata
+                duration = pvr.get("lengthText", {}).get("simpleText", "")
+                v_stats = pvr.get("videoInfo", {}).get("runs", [])
+                v_views = v_stats[0].get("text", "") if len(v_stats) > 0 else ""
+                v_date = v_stats[2].get("text", "") if len(v_stats) > 2 else ""
+
+                cards.append(make_card(playlist_id, total_processed, video_id, v_title, duration, v_views, v_date))
+                notion_cards.append(make_notion_card(playlist_id, total_processed, video_id, v_title, duration, v_views, v_date))
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to extract videos: {str(e)}")
 
-    try:
-        real_total_count_text = utils.get_nested_item(
-            ytInitialData, "sidebar", "playlistSidebarRenderer", "items", utils.ListExactlyOneChildDictKey, 
-            "playlistSidebarPrimaryInfoRenderer", "stats", utils.ListExactlyOne, "runs", utils.ListExactlyOne, "text"
-        )
-        total_count = int(''.join(filter(str.isdigit, real_total_count_text)))
-    except Exception:
-        total_count = total_processed
+    yaml_props = generate_yaml_properties(playlist_metadata)
+    markdown_result = yaml_props + "\n\n" + "\n".join(cards)
+    notion_result = "\n\n".join(notion_cards)
 
-    return ConvertResponse(markdown="\n".join(cards), notion="\n\n".join(notion_cards), title=title, author=author, total_count=total_count, truncated=truncated)
+    return ConvertResponse(
+        markdown=markdown_result, 
+        notion=notion_result, 
+        title=title, 
+        author=author, 
+        total_count=playlist_metadata["video_count"], 
+        truncated=truncated
+    )
 
 
 @app.post("/api/license/validate", response_model=LicenseValidateResponse)
@@ -192,8 +224,6 @@ async def webhook_creem(request: Request, creem_signature: Annotated[str | None,
         order_id = order.get("id")
         
         if email and order_id:
-            # Provision license and it will automatically be emailed by Creem 
-            # if set up in dashboard, but we also store it in KV.
             provision_license(email, order_id, "creem")
             
     return {"status": "success"}
@@ -211,15 +241,11 @@ async def webhook_nowpayments(request: Request, x_nowpayments_sig: Annotated[str
 
     payment_status = data.get("payment_status")
     if payment_status == "finished":
-        # Extract metadata from custom 'order_id' or 'order_description' if needed
-        # For now, we assume email is provided in the IPN or we check our DB
-        # NOWPayments often sends a 'customer_email' if provided in payment creation
-        email = data.get("customer_email") or data.get("order_description") # Fallback
+        email = data.get("customer_email") or data.get("order_description")
         order_id = data.get("payment_id")
         
         if email and "@" in email:
             key = provision_license(email, str(order_id), "nowpayments")
-            # For crypto, we MUST send the email ourselves as NOWPayments doesn't generate licenses
             background_tasks.add_task(send_license_email, email, key)
             
     return {"status": "success"}

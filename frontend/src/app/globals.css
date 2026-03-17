@@ -137,22 +137,26 @@
 }
 
 main {
-  /* Using rem for consistent fade size regardless of page length */
+  /* Prominent fade effect that stays relative to the viewport top (below header) */
   mask-image: linear-gradient(to bottom, 
     transparent 0rem, 
-    black 4rem, 
-    black calc(100% - 4rem), 
+    transparent 1rem,
+    black 6rem, 
+    black calc(100% - 6rem), 
     transparent 100%
   );
   -webkit-mask-image: linear-gradient(to bottom, 
     transparent 0rem, 
-    black 4rem, 
-    black calc(100% - 4rem), 
+    transparent 1rem,
+    black 6rem, 
+    black calc(100% - 6rem), 
     transparent 100%
   );
-  /* Ensure the mask applies to the content as it scrolls */
   mask-attachment: fixed;
   -webkit-mask-attachment: fixed;
+  
+  /* Add padding top to ensure content doesn't start hidden under the mask */
+  padding-top: 1rem;
 }
 
 .glass-card {

@@ -81,31 +81,53 @@ function generateYamlProperties(meta: any): string {
  * Resiliently finds the playlist videos list in the nested JSON structure.
  */
 function findContents(data: any): any[] {
-  // Path 1: Standard Desktop Web
-  try {
-    const c = data?.contents?.twoColumnBrowseResultsRenderer?.tabs?.[0]?.tabRenderer?.content?.sectionListRenderer?.contents?.[0]?.itemSectionRenderer?.contents?.[0]?.playlistVideoListRenderer?.contents;
-    if (Array.isArray(c)) return c;
-  } catch (e) {}
+  if (!data || typeof data !== 'object') return [];
 
-  // Path 2: Mobile / Alternative structure
-  try {
-    const c = data?.contents?.singleColumnBrowseResultsRenderer?.tabs?.[0]?.tabRenderer?.content?.sectionListRenderer?.contents?.[0]?.itemSectionRenderer?.contents?.[0]?.playlistVideoListRenderer?.contents;
-    if (Array.isArray(c)) return c;
-  } catch (e) {}
+  // 1. Try known paths
+  const paths = [
+    data?.contents?.twoColumnBrowseResultsRenderer?.tabs?.[0]?.tabRenderer?.content?.sectionListRenderer?.contents?.[0]?.itemSectionRenderer?.contents?.[0]?.playlistVideoListRenderer?.contents,
+    data?.contents?.singleColumnBrowseResultsRenderer?.tabs?.[0]?.tabRenderer?.content?.sectionListRenderer?.contents?.[0]?.itemSectionRenderer?.contents?.[0]?.playlistVideoListRenderer?.contents,
+    data?.contents?.twoColumnBrowseResultsRenderer?.tabs?.[0]?.tabRenderer?.content?.richGridRenderer?.contents
+  ];
 
-  // Path 3: Search for any playlistVideoListRenderer deep in the object
-  function deepSearch(obj: any): any[] | null {
+  for (const p of paths) {
+    if (Array.isArray(p) && p.length > 0) return p;
+  }
+
+  // 2. Recursive search for ANY array that contains objects with 'playlistVideoRenderer'
+  let foundArray: any[] | null = null;
+
+  function walk(obj: any) {
+    if (foundArray || !obj || typeof obj !== 'object') return;
+
+    if (Array.isArray(obj)) {
+      if (obj.some(item => item?.playlistVideoRenderer || item?.richItemRenderer)) {
+        foundArray = obj;
+        return;
+      }
+      for (const item of obj) walk(item);
+    } else {
+      for (const key in obj) walk(obj[key]);
+    }
+  }
+
+  // Also check for specific renderer containers if the above didn't find it
+  function deepSearchRenderer(obj: any): any[] | null {
     if (!obj || typeof obj !== 'object') return null;
     if (obj.playlistVideoListRenderer?.contents) return obj.playlistVideoListRenderer.contents;
+    if (obj.playlistRenderer?.contents) return obj.playlistRenderer.contents;
     
     for (const key in obj) {
-      const result = deepSearch(obj[key]);
-      if (result) return result;
+      const res = deepSearchRenderer(obj[key]);
+      if (res) return res;
     }
     return null;
   }
 
-  return deepSearch(data) || [];
+  walk(data);
+  if (Array.isArray(foundArray)) return foundArray;
+
+  return deepSearchRenderer(data) || [];
 }
 
 async function fetchContinuation(
@@ -200,14 +222,17 @@ export async function POST(request: NextRequest) {
     if (jsonStr.endsWith(";")) jsonStr = jsonStr.slice(0, -1);
     const data = JSON.parse(jsonStr);
 
-    const title = data?.metadata?.playlistMetadataRenderer?.title ?? "";
-    const author = data?.header?.playlistHeaderRenderer?.ownerText?.runs?.[0]?.text ?? "";
+    const title = data?.metadata?.playlistMetadataRenderer?.title ?? 
+                  data?.header?.playlistHeaderRenderer?.title?.simpleText ?? 
+                  data?.header?.playlistHeaderRenderer?.title?.runs?.[0]?.text ?? "";
+    const author = data?.header?.playlistHeaderRenderer?.ownerText?.runs?.[0]?.text ?? 
+                   data?.sidebar?.playlistSidebarRenderer?.items?.[0]?.playlistSidebarPrimaryInfoRenderer?.ownerText?.runs?.[0]?.text ?? "";
     
     const sidebar = data?.sidebar?.playlistSidebarRenderer?.items?.[0]?.playlistSidebarPrimaryInfoRenderer;
-    const description = sidebar?.description?.simpleText ?? "";
+    const description = sidebar?.description?.simpleText ?? data?.metadata?.playlistMetadataRenderer?.description ?? "";
     const stats = sidebar?.stats ?? [];
-    const videoCountText = stats[0]?.runs?.[0]?.text ?? "0";
-    const viewCount = stats[1]?.simpleText ?? "";
+    const videoCountText = stats[0]?.runs?.[0]?.text ?? stats[0]?.simpleText ?? "0";
+    const viewCount = stats[1]?.simpleText ?? stats[1]?.simpleText ?? "";
     
     let lastUpdated = "";
     for (const s of stats) {
@@ -238,9 +263,13 @@ export async function POST(request: NextRequest) {
         break;
       }
 
+      // Handle both standard playlist items and rich grid items
+      const videoData = item.playlistVideoRenderer || item.richItemRenderer?.content?.videoRenderer;
+
       if (item.continuationItemRenderer) {
         if (!isPro) { truncated = true; break; }
-        const tok = item.continuationItemRenderer?.continuationEndpoint?.commandExecutorCommand?.commands?.find((c: any) => c.continuationCommand)?.continuationCommand?.token;
+        const tok = item.continuationItemRenderer?.continuationEndpoint?.commandExecutorCommand?.commands?.find((c: any) => c.continuationCommand)?.continuationCommand?.token || 
+                    item.continuationItemRenderer?.continuationEndpoint?.continuationCommand?.token;
         if (tok) {
           const more = await fetchContinuation(playlistId, tok, videoIndex, isPro, cookies);
           cards.push(...more.cards);
@@ -248,15 +277,16 @@ export async function POST(request: NextRequest) {
           videoIndex = more.nextIndex;
           truncated = more.truncated;
         }
-      } else if (item.playlistVideoRenderer) {
-        const pvr = item.playlistVideoRenderer;
-        const duration = pvr.lengthText?.simpleText ?? "";
-        const v_stats = pvr.videoInfo?.runs ?? [];
+      } else if (videoData) {
+        const v_id = videoData.videoId;
+        const v_title = videoData.title?.runs?.[0]?.text ?? videoData.title?.simpleText ?? "";
+        const duration = videoData.lengthText?.simpleText ?? "";
+        const v_stats = videoData.videoInfo?.runs ?? [];
         const v_views = v_stats[0]?.text ?? "";
         const v_date = v_stats[2]?.text ?? "";
 
-        cards.push(makeCard(playlistId, videoIndex, pvr.videoId, pvr.title?.runs?.[0]?.text ?? "", duration, v_views, v_date));
-        notionCards.push(makeNotionCard(playlistId, videoIndex, pvr.videoId, pvr.title?.runs?.[0]?.text ?? "", duration, v_views, v_date));
+        cards.push(makeCard(playlistId, videoIndex, v_id, v_title, duration, v_views, v_date));
+        notionCards.push(makeNotionCard(playlistId, videoIndex, v_id, v_title, duration, v_views, v_date));
         videoIndex++;
       }
     }

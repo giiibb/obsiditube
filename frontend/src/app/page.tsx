@@ -207,25 +207,27 @@ export default function Home() {
   const COOKIE_STEPS = [
     {
       icon: <Globe className="h-4 w-4 text-primary flex-shrink-0" />,
-      title: "Open YouTube in your browser",
-      detail: "Make sure you're logged in to the account that has access.",
+      title: "Open YouTube",
+      detail: "Go to youtube.com and ensure you are logged in.",
     },
     {
-      icon: <MousePointerClick className="h-4 w-4 text-primary flex-shrink-0" />,
-      title: "Open DevTools",
-      detail: "Press F12 or right-click anywhere → Inspect.",
-    },
-    {
-      icon: <Search className="h-4 w-4 text-primary flex-shrink-0" />,
-      title: "Go to the Network tab",
-      detail: 'Refresh. Click on any request to youtube.com. Find the "cookie:" header.',
+      icon: <Code className="h-4 w-4 text-primary flex-shrink-0" />,
+      title: "Open Console",
+      detail: "Press F12, then click the 'Console' tab.",
     },
     {
       icon: <ClipboardCopy className="h-4 w-4 text-primary flex-shrink-0" />,
-      title: "Copy the entire cookie value",
-      detail: "Paste it in the field below.",
+      title: "Paste Snippet",
+      detail: "Paste the code below and press Enter to copy cookies instantly.",
     },
   ];
+
+  const COOKIE_SNIPPET = "copy(document.cookie); console.log('✅ Cookies copied to clipboard!')";
+
+  const copySnippet = () => {
+    navigator.clipboard.writeText(COOKIE_SNIPPET);
+    toast.success("Snippet copied! Paste it in the YouTube console.");
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30">
@@ -358,7 +360,7 @@ export default function Home() {
                         </button>
 
                         {showGuide && (
-                          <div className="px-4 pb-4 space-y-3 animate-in fade-in duration-200">
+                          <div className="px-4 pb-4 space-y-4 animate-in fade-in duration-200">
                             {COOKIE_STEPS.map((step, i) => (
                               <div key={i} className="flex gap-3 items-start">
                                 <div className="mt-0.5 flex items-center justify-center h-6 w-6 rounded-full bg-primary/15 text-[11px] font-bold text-primary flex-shrink-0">
@@ -370,6 +372,23 @@ export default function Home() {
                                 </div>
                               </div>
                             ))}
+                            
+                            <div className="pt-2">
+                              <div 
+                                onClick={copySnippet}
+                                className="group relative bg-black/40 border border-white/10 rounded-lg p-3 cursor-pointer hover:bg-black/60 transition-all"
+                              >
+                                <code className="text-[10px] font-mono text-primary/90 break-all leading-tight">
+                                  {COOKIE_SNIPPET}
+                                </code>
+                                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <ClipboardCopy className="h-3 w-3 text-muted-foreground" />
+                                </div>
+                                <p className="text-[9px] text-muted-foreground mt-2 uppercase tracking-tighter font-bold opacity-50">
+                                  Click code to copy
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         )}
                       </div>

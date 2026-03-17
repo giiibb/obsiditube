@@ -61,7 +61,7 @@ function makeNotionCard(playlistId: string, index: number, videoId: string, titl
   const thumb = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
   const t = title.replace(/\[/g, "\\[").replace(/\]/g, "\\]");
   const meta = duration ? ` (${duration})` : "";
-  return `![${t}](${thumb})\n- [ ] [**${index}. ${t}**{meta}](${url})`;
+  return `![${t}](${thumb})\n- [ ] [**${index}. ${t}**${meta}](${url})`;
 }
 
 function generateYamlProperties(meta: any): string {

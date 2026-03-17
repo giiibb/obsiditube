@@ -5,23 +5,22 @@ Exposes a single REST endpoint that wraps the original CLI scraping logic:
 
   POST /api/convert
     body: { url: str, cookies?: str }
-    response: { markdown: str, title: str, author: str }
+    headers: { X-License-Key: str }
+    response: { markdown: str, notion: str, title: str, author: str, total_count: int, truncated: bool }
 
-The endpoint:
-  1. Validates and extracts the playlist ID from the given YouTube URL.
-  2. Creates an HTTP session with consent cookies + optional user-provided cookies.
-  3. Fetches the YouTube playlist page and extracts ytInitialData (inline JSON).
-  4. Iterates over all videos, following continuation tokens for long playlists.
-  5. Returns the assembled Obsidian cardlink markdown.
+  POST /api/license/validate
+    body: { license_key: str }
+    response: { valid: bool, data?: dict }
 
-CORS is fully open so the Next.js frontend (or any other client) can call this
-regardless of port or origin.
+  POST /api/webhooks/creem
+  POST /api/webhooks/nowpayments
 """
 
 import json
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import Annotated, Dict, Any
 
 from src.config import create_session
 from src.parser import (
@@ -31,12 +30,19 @@ from src.parser import (
 )
 from src.fetch import fetch_continuation
 from src import utils
-from main import make_card, make_notion_card  # reuse card formatters from the original CLI
+from src.license import verify_license_key, get_license_data, FREE_TIER_LIMIT
+from src.webhooks import (
+    verify_creem_signature, 
+    verify_nowpayments_signature, 
+    provision_license,
+    send_license_email
+)
+from main import make_card, make_notion_card
 
 app = FastAPI(
     title="ObsidiTube API",
     description="Convert YouTube playlists to Obsidian cardlink markdown.",
-    version="1.0.0",
+    version="1.1.0",
 )
 
 # Allow all origins so the Next.js dev server and Vercel frontend can reach this.
@@ -51,207 +57,169 @@ app.add_middleware(
 
 class ConvertRequest(BaseModel):
     """Request body for the /api/convert endpoint."""
-    url: str           # Full YouTube playlist URL
-    cookies: str | None = None  # Optional raw cookie header string (for private playlists)
+    url: str
+    cookies: str | None = None
 
 
 class ConvertResponse(BaseModel):
     """Response body returned after successful conversion."""
-    markdown: str  # Full Obsidian cardlink markdown output
-    notion: str    # Notion-compatible markdown (image + checkbox per video)
-    title: str     # Playlist title (used as the suggested filename)
-    author: str    # Channel / uploader name (may be empty if not found)
+    markdown: str
+    notion: str
+    title: str
+    author: str
+    total_count: int
+    truncated: bool
+
+
+class LicenseValidateRequest(BaseModel):
+    license_key: str
+
+
+class LicenseValidateResponse(BaseModel):
+    valid: bool
+    data: Dict[str, Any] | None = None
 
 
 @app.post("/api/convert", response_model=ConvertResponse)
-def convert_playlist(req: ConvertRequest):
-    """
-    Main conversion endpoint.
-
-    Steps:
-      1. Parse playlist ID from URL (raises 400 on invalid URL / missing list= param).
-      2. Fetch the YouTube playlist HTML page.
-      3. Extract ytInitialData JSON embedded in the page.
-      4. Pull out title, author, and the list of video renderers.
-      5. For playlists > ~100 videos, follow YouTube's continuation tokens recursively.
-      6. Assemble and return the full markdown.
-    """
-
-    # --- Step 1: validate URL and extract playlist ID ---
+def convert_playlist(
+    req: ConvertRequest, 
+    x_license_key: Annotated[str | None, Header()] = None
+):
+    """Main conversion endpoint with Paywall truncation."""
     try:
         playlist_id = parser_url_and_get_playlist_id(req.url)
     except ParserError as e:
         raise HTTPException(status_code=400, detail=str(e.msg))
 
-    # Build the requests Session with appropriate headers and cookies.
-    # SOCS/CONSENT cookies are always injected to bypass the EU consent gate.
-    # User-provided cookies are appended after (for private playlist access).
+    is_pro = verify_license_key(x_license_key) if x_license_key else False
     session = create_session(cached=False, cookies=req.cookies)
 
-    # --- Step 2 & 3: fetch the page and extract ytInitialData ---
     try:
-        with session.get(
-            url=f"https://www.youtube.com/playlist?list={playlist_id}"
-        ) as resp:
+        with session.get(url=f"https://www.youtube.com/playlist?list={playlist_id}") as resp:
             resp.raise_for_status()
-
-            # YouTube embeds a large JSON object in the HTML as:
-            #   var ytInitialData = { ... };
-            # We extract it with a custom byte-level parser (no regex /  beautifulsoup
-            # needed — faster and avoids encoding issues with large pages).
             ytInitialData = json.loads(
-                get_json_from_content(
-                    resp.content, name=b"var ytInitialData = ", prefix=b"", postfix=b""
-                )
+                get_json_from_content(resp.content, name=b"var ytInitialData = ", prefix=b"", postfix=b"")
             )
-
-            # Playlist title — always present under metadata.
-            title = utils.get_nested_item(
-                ytInitialData,
-                "metadata",
-                "playlistMetadataRenderer",
-                "title",
-            )
-
-            # Channel / uploader name — found under the header renderer.
-            # Two possible paths depending on playlist type; fall back to "".
+            title = utils.get_nested_item(ytInitialData, "metadata", "playlistMetadataRenderer", "title")
             try:
-                author = utils.get_nested_item(
-                    ytInitialData,
-                    "header",
-                    "playlistHeaderRenderer",
-                    "ownerText",
-                    "runs",
-                    utils.ListExactlyOne,
-                    "text",
-                )
+                author = utils.get_nested_item(ytInitialData, "header", "playlistHeaderRenderer", "ownerText", "runs", utils.ListExactlyOne, "text")
             except Exception:
-                try:
-                    # Alternative path used for some playlist types
-                    author = utils.get_nested_item(
-                        ytInitialData,
-                        "sidebar",
-                        "playlistSidebarRenderer",
-                        "items",
-                        utils.ListExactlyOneChildDictKey,
-                        "playlistSidebarSecondaryInfoRenderer",
-                        "videoOwner",
-                        "videoOwnerRenderer",
-                        "title",
-                        "runs",
-                        utils.ListExactlyOne,
-                        "text",
-                    )
-                except Exception:
-                    author = ""  # Not critical — download filename will omit the _by_ suffix
-
+                author = ""
     except Exception as e:
-        raise HTTPException(
-            status_code=400, detail=f"Failed to fetch initial page: {str(e)}"
-        )
+        raise HTTPException(status_code=400, detail=f"Failed to fetch initial page: {str(e)}")
 
-    # --- Step 4: navigate the nested ytInitialData to the video list ---
     try:
         contents = utils.get_nested_item(
-            ytInitialData,
-            "contents",
-            "twoColumnBrowseResultsRenderer",
-            "tabs",
-            utils.ListExactlyOne,
-            "tabRenderer",
-            "content",
-            "sectionListRenderer",
-            "contents",
-            utils.ListExactlyOneChildDictKey,
-            "itemSectionRenderer",
-            "contents",
-            utils.ListExactlyOneChildDictKey,
-            "playlistVideoListRenderer",
-            "contents",
+            ytInitialData, "contents", "twoColumnBrowseResultsRenderer", "tabs", utils.ListExactlyOne, "tabRenderer", 
+            "content", "sectionListRenderer", "contents", utils.ListExactlyOneChildDictKey, "itemSectionRenderer", 
+            "contents", utils.ListExactlyOneChildDictKey, "playlistVideoListRenderer", "contents"
         )
-    except Exception as e:
-        raise HTTPException(
-            status_code=400,
-            detail="Failed to parse playlist contents. Make sure the cookies are valid if the playlist is private.",
-        )
+    except Exception:
+        raise HTTPException(status_code=400, detail="Failed to parse playlist contents. Check cookies if private.")
 
-    # --- Step 5: iterate videos, following continuation tokens if needed ---
-    continuationItemRenderer_found: bool = False
-    cards: list[str] = []
-    notion_cards: list[str] = []
+    cards, notion_cards = [], []
+    total_processed, truncated = 0, False
 
     try:
-        for video_index, content in enumerate(contents, start=1):
-            continuationItemRenderer = content.get("continuationItemRenderer")
+        for content in contents:
+            if not is_pro and total_processed >= FREE_TIER_LIMIT:
+                truncated = True
+                break
 
-            if continuationItemRenderer_found:
-                # Should never happen — continuation must be the last item
-                raise ValueError(
-                    "continuationItemRenderer can only occure at max 1 time and it should be at last."
-                )
-            elif continuationItemRenderer is not None:
-                # This batch is paginated — fetch subsequent pages via the API
-                continuationItemRenderer_found = True
-                continuation_videos = list(
-                    fetch_continuation(
-                        session,
-                        playlist_id,
-                        continuation_token=utils.get_nested_item(
-                            continuationItemRenderer,
-                            "continuationEndpoint",
-                            "commandExecutorCommand",
-                            "commands",
-                            utils.ListExactlyOneChildDictKey,
-                            "continuationCommand",
-                            "token",
-                        ),
-                        video_index=video_index,
+            continuationItemRenderer = content.get("continuationItemRenderer")
+            if continuationItemRenderer is not None:
+                if not is_pro:
+                    truncated = True
+                    break
+                
+                continuation_videos = fetch_continuation(
+                    session, playlist_id, video_index=total_processed + 1,
+                    continuation_token=utils.get_nested_item(
+                        continuationItemRenderer, "continuationEndpoint", "commandExecutorCommand", "commands", 
+                        utils.ListExactlyOneChildDictKey, "continuationCommand", "token"
                     )
                 )
                 for video_info in continuation_videos:
-                    cards.append(make_card(
-                        playlist_id=video_info["playlist_id"],
-                        index=video_info["index"],
-                        video_id=video_info["video_id"],
-                        title=video_info["title"],
-                    ))
-                    notion_cards.append(make_notion_card(
-                        playlist_id=video_info["playlist_id"],
-                        index=video_info["index"],
-                        video_id=video_info["video_id"],
-                        title=video_info["title"],
-                    ))
+                    cards.append(make_card(video_info["playlist_id"], video_info["index"], video_info["video_id"], video_info["title"]))
+                    notion_cards.append(make_notion_card(video_info["playlist_id"], video_info["index"], video_info["video_id"], video_info["title"]))
+                    total_processed += 1
             else:
-                # Normal video entry — extract video ID and title
-                playlistVideoRenderer = content["playlistVideoRenderer"]
-                video_id = playlistVideoRenderer["videoId"]
-                video_title = utils.get_nested_item(
-                    playlistVideoRenderer,
-                    "title",
-                    "runs",
-                    utils.ListExactlyOne,
-                    "text",
-                )
-                cards.append(make_card(
-                    playlist_id=playlist_id,
-                    index=video_index,
-                    video_id=video_id,
-                    title=video_title,
-                ))
-                notion_cards.append(make_notion_card(
-                    playlist_id=playlist_id,
-                    index=video_index,
-                    video_id=video_id,
-                    title=video_title,
-                ))
-
+                pvr = content["playlistVideoRenderer"]
+                total_processed += 1
+                cards.append(make_card(playlist_id, total_processed, pvr["videoId"], utils.get_nested_item(pvr, "title", "runs", utils.ListExactlyOne, "text")))
+                notion_cards.append(make_notion_card(playlist_id, total_processed, pvr["videoId"], utils.get_nested_item(pvr, "title", "runs", utils.ListExactlyOne, "text")))
     except Exception as e:
-        raise HTTPException(
-            status_code=400, detail=f"Failed to extract videos: {str(e)}"
+        raise HTTPException(status_code=400, detail=f"Failed to extract videos: {str(e)}")
+
+    try:
+        real_total_count_text = utils.get_nested_item(
+            ytInitialData, "sidebar", "playlistSidebarRenderer", "items", utils.ListExactlyOneChildDictKey, 
+            "playlistSidebarPrimaryInfoRenderer", "stats", utils.ListExactlyOne, "runs", utils.ListExactlyOne, "text"
         )
+        total_count = int(''.join(filter(str.isdigit, real_total_count_text)))
+    except Exception:
+        total_count = total_processed
 
-    # Join all cards with a single newline between each block
-    result = "\n".join(cards)
-    notion_result = "\n\n".join(notion_cards)
+    return ConvertResponse(markdown="\n".join(cards), notion="\n\n".join(notion_cards), title=title, author=author, total_count=total_count, truncated=truncated)
 
-    return ConvertResponse(markdown=result, notion=notion_result, title=title, author=author)
+
+@app.post("/api/license/validate", response_model=LicenseValidateResponse)
+def validate_license(req: LicenseValidateRequest):
+    """Validate a license key and return metadata."""
+    data = get_license_data(req.license_key)
+    if data and data.get("status") == "active":
+        return LicenseValidateResponse(valid=True, data=data)
+    return LicenseValidateResponse(valid=False)
+
+
+@app.post("/api/webhooks/creem")
+async def webhook_creem(request: Request, creem_signature: Annotated[str | None, Header()] = None):
+    """Handle Creem.io payment notifications."""
+    if not creem_signature:
+        raise HTTPException(status_code=400, detail="Missing signature")
+    
+    body = await request.body()
+    if not verify_creem_signature(body, creem_signature):
+        raise HTTPException(status_code=401, detail="Invalid signature")
+
+    data = await request.json()
+    event = data.get("event")
+    
+    if event == "order.created":
+        order = data.get("data", {}).get("order", {})
+        customer = data.get("data", {}).get("customer", {})
+        email = customer.get("email")
+        order_id = order.get("id")
+        
+        if email and order_id:
+            # Provision license and it will automatically be emailed by Creem 
+            # if set up in dashboard, but we also store it in KV.
+            provision_license(email, order_id, "creem")
+            
+    return {"status": "success"}
+
+
+@app.post("/api/webhooks/nowpayments")
+async def webhook_nowpayments(request: Request, x_nowpayments_sig: Annotated[str | None, Header()] = None, background_tasks: BackgroundTasks = None):
+    """Handle NOWPayments crypto notifications."""
+    if not x_nowpayments_sig:
+        raise HTTPException(status_code=400, detail="Missing signature")
+    
+    data = await request.json()
+    if not verify_nowpayments_signature(data, x_nowpayments_sig):
+        raise HTTPException(status_code=401, detail="Invalid signature")
+
+    payment_status = data.get("payment_status")
+    if payment_status == "finished":
+        # Extract metadata from custom 'order_id' or 'order_description' if needed
+        # For now, we assume email is provided in the IPN or we check our DB
+        # NOWPayments often sends a 'customer_email' if provided in payment creation
+        email = data.get("customer_email") or data.get("order_description") # Fallback
+        order_id = data.get("payment_id")
+        
+        if email and "@" in email:
+            key = provision_license(email, str(order_id), "nowpayments")
+            # For crypto, we MUST send the email ourselves as NOWPayments doesn't generate licenses
+            background_tasks.add_task(send_license_email, email, key)
+            
+    return {"status": "success"}

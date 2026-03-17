@@ -15,3 +15,8 @@ wheels/
 .env*.local
 .agent/
 .vscode/
+
+# Local Settings
+.gemini/settings.json
+.zed/settings.json
+

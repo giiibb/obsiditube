@@ -1,74 +1,91 @@
 """
-ObsidiTube — License Key System
-================================
-Stateless HMAC-based license key issuance and validation.
+ObsidiTube — License Key System (Upstash KV / Redis Edition)
+============================================================
+Stateful license key validation using Upstash KV.
 
-Key format:  {prefix}_{order_id}.{hmac_sha256(secret, prefix_order_id)[:32]}
+Keys are stored in Redis:
+  Key:   "license:{license_key}"
+  Value: { "status": "active", "email": "user@example.com", "id": "creem_order_id" }
 
-  prefix    = "ls"  (LemonSqueezy) | "np" (NOWPayments)
-  order_id  = platform-specific order / payment ID
-  hmac part = first 32 hex chars of HMAC-SHA256
-
-Example:  ls_12345.a3f7c2b8d1e94f0a...
-
-Validation is fully **stateless** — no database required.
-The secret is the LICENSE_HMAC_SECRET env var. Guard it carefully.
+Validation is done via Upstash REST API for serverless / edge compatibility.
 """
 
-import hmac
-import hashlib
 import os
+import requests
+import json
+from typing import Optional, Dict, Any
 
 FREE_TIER_LIMIT = 10  # max videos without a valid license key
 
-def _get_secret() -> bytes:
-    """Load the HMAC secret from environment. Raises clearly if missing."""
-    secret = os.getenv("LICENSE_HMAC_SECRET", "")
-    if not secret:
-        raise EnvironmentError(
-            "LICENSE_HMAC_SECRET env var is not set. "
-            "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
-        )
-    return secret.encode()
-
-
-def make_license_key(prefix: str, order_id: str) -> str:
-    """
-    Generate a license key for a completed order.
-
-    Args:
-        prefix:   "ls" for LemonSqueezy, "np" for NOWPayments
-        order_id: The platform's unique order/payment identifier
-
-    Returns:
-        A string like "ls_12345.a3f7c2b8d1e94f0a..."
-    """
-    payload = f"{prefix}_{order_id}"
-    sig = hmac.new(
-        _get_secret(),
-        payload.encode(),
-        hashlib.sha256,
-    ).hexdigest()[:32]
-    return f"{payload}.{sig}"
+def _get_kv_config() -> tuple[str, str]:
+    """Load Upstash KV REST configuration from environment."""
+    url = os.getenv("KV_REST_API_URL", "")
+    token = os.getenv("KV_REST_API_TOKEN", "")
+    if not url or not token:
+        # Fallback to local dev if not set (but in prod this will fail)
+        return "", ""
+    return url, token
 
 
 def verify_license_key(key: str) -> bool:
     """
-    Verify a license key without a database lookup.
+    Verify a license key against Upstash KV store.
 
-    Returns True if the key was issued by this server (valid HMAC),
-    False for any invalid / malformed / tampered key.
+    Returns True if the key exists and its status is 'active'.
     """
-    if not key or "." not in key:
+    if not key or len(key) < 8:
         return False
+    
+    url, token = _get_kv_config()
+    if not url:
+        # If no KV is configured, we can't validate (deny access)
+        print("Warning: KV_REST_API_URL not set. Denying license validation.")
+        return False
+
     try:
-        payload, sig = key.rsplit(".", 1)
-        expected_sig = hmac.new(
-            _get_secret(),
-            payload.encode(),
-            hashlib.sha256,
-        ).hexdigest()[:32]
-        # Use constant-time comparison to prevent timing attacks
-        return hmac.compare_digest(sig, expected_sig)
-    except Exception:
+        # GET license:{key} from Redis
+        # Using the REST API: GET /get/license:key
+        response = requests.get(
+            f"{url}/get/license:{key}",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=5
+        )
+        
+        if response.status_code != 200:
+            return False
+            
+        result = response.json()
+        # Upstash returns {"result": "JSON_STRING"} for GET
+        data_str = result.get("result")
+        
+        if not data_str:
+            return False
+            
+        data = json.loads(data_str)
+        return data.get("status") == "active"
+        
+    except Exception as e:
+        print(f"Error validating license key: {e}")
         return False
+
+
+def get_license_data(key: str) -> Optional[Dict[str, Any]]:
+    """Fetch full metadata for a license key."""
+    url, token = _get_kv_config()
+    if not url or not key:
+        return None
+
+    try:
+        response = requests.get(
+            f"{url}/get/license:{key}",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=5
+        )
+        if response.status_code == 200:
+            result = response.json()
+            data_str = result.get("result")
+            if data_str:
+                return json.loads(data_str)
+    except Exception:
+        pass
+    return None

@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import redis from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -19,30 +20,15 @@ const CONSENT_COOKIES =
   "CONSENT=PENDING+987";
 
 const FREE_TIER_LIMIT = 10;
+const CACHE_TTL = 3600; // 1 hour
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 async function verifyLicenseKey(key: string | null): Promise<boolean> {
   if (!key || key.length < 8) return false;
-  
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
-  
-  if (!url || !token) {
-    console.warn("KV_REST_API config missing on Vercel.");
-    return false;
-  }
-
   try {
-    const res = await fetch(`${url}/get/license:${key}`, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store'
-    });
-    if (!res.ok) return false;
-    const data = await res.json();
-    if (!data.result) return false;
-    const payload = JSON.parse(data.result);
-    return payload.status === 'active';
+    const payload = await redis.get<any>(`license:${key}`);
+    return payload?.status === 'active';
   } catch (e) {
     console.error("License validation error:", e);
     return false;
@@ -164,6 +150,13 @@ export async function POST(request: NextRequest) {
     const playlistId = new URL(url).searchParams.get("list");
     if (!playlistId) return NextResponse.json({ detail: "Invalid URL" }, { status: 400 });
 
+    // ─── Cache Check ────────────────────────────────────────────────────────
+    const cacheKey = `playlist:${playlistId}:${isPro ? 'pro' : 'free'}:${cookies ? 'auth' : 'public'}`;
+    const cached = await redis.get<any>(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached);
+    }
+
     const resp = await fetch(`https://www.youtube.com/playlist?list=${playlistId}`, { headers: buildHeaders(cookies) });
     if (!resp.ok) return NextResponse.json({ detail: "YouTube request failed" }, { status: 400 });
     
@@ -237,13 +230,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    const result = {
       markdown: generateYamlProperties(playlistMetadata) + "\n\n" + cards.join("\n"),
       notion: notionCards.join("\n\n"),
       title, author,
       total_count: playlistMetadata.video_count,
       truncated: truncated || (playlistMetadata.video_count > FREE_TIER_LIMIT && !isPro)
-    });
+    };
+
+    // ─── Save to Cache ──────────────────────────────────────────────────────
+    try {
+      await redis.set(cacheKey, result, { ex: CACHE_TTL });
+    } catch (cacheErr) {
+      console.warn("Failed to save to cache:", cacheErr);
+    }
+
+    return NextResponse.json(result);
   } catch (e: any) {
     console.error("Vercel route error:", e);
     return NextResponse.json({ detail: e.message || "Internal Server Error" }, { status: 500 });

@@ -237,8 +237,8 @@ export default function Home() {
       <header className="border-b border-white/5 bg-background/40 backdrop-blur-2xl sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between relative">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg overflow-hidden border border-white/10 shadow-lg">
-              <img src="/banner.png" alt="Logo" className="h-full w-full object-cover scale-150" />
+            <div className="h-8 w-8 rounded-lg overflow-hidden border border-white/10 shadow-lg bg-white/5">
+              <img src="/app-logo.png" alt="Logo" className="h-full w-full object-contain" />
             </div>
             <span className="font-bold tracking-tight text-xl bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
               Obsidi<span className="text-primary">Tube</span>
@@ -559,7 +559,7 @@ export default function Home() {
 
                 {!resultMarkdown ? (
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/30 select-none">
-                    <img src="/banner.png" alt="Empty Logo" className="h-24 w-24 mb-6 opacity-10 grayscale invert" />
+                    <img src="/app-logo.png" alt="Empty Logo" className="h-24 w-24 mb-6 opacity-5 grayscale invert brightness-200" />
                     <p className="text-xl font-bold tracking-tight">Ready for deployment</p>
                     <p className="text-sm font-medium">Paste a URL to start the conversion</p>
                   </div>

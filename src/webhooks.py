@@ -1,5 +1,5 @@
 """
-ObsidiTube — Webhook Handlers
+Your ObsidiTube Pro License
 ============================
 Securely verify and process payment notifications from Creem.io and NOWPayments.
 """
@@ -100,14 +100,14 @@ def send_license_email(email: str, license_key: str):
         print("RESEND_API_KEY missing. Skipping email.")
         return
 
-    html_content = f\"\"\"
+    html_content = f"""
     <h1>Your ObsidiTube Pro License</h1>
     <p>Thank you for your purchase!</p>
     <p>Your license key is: <strong>{license_key}</strong></p>
     <p>Enter this key in the ObsidiTube dashboard to unlock unlimited playlist conversions.</p>
     <br/>
     <p>Cheers,<br/>GiBlok Team</p>
-    \"\"\"
+    """
 
     try:
         requests.post(

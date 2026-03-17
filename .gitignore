@@ -23,7 +23,7 @@ wheels/
 .vercel/
 
 # Project Specific
-Docs/release-checklist.md
+Docs/
 output/
 test_output.md
 

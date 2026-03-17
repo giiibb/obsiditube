@@ -70,10 +70,6 @@ POST /api/convert                 ← now checks X-License-Key header
 |---|---|
 | `components/PaywallModal.tsx` | 3-tab upgrade modal |
 | `components/ProBanner.tsx` | "X more locked · Unlock $9" in-panel banner |
-| `components/Footer.tsx` | GiBlok footer with legal links |
-| `app/terms/page.tsx` | Terms of Service |
-| `app/privacy/page.tsx` | Privacy Policy |
-| `app/refund/page.tsx` | Refund Policy |
 
 ---
 
@@ -101,13 +97,6 @@ APP_URL=https://obsiditube.vercel.app
 ```
 
 ---
-
-## Footer (GiBlok brand)
-
-- Logo + tagline: *"Simple tools for focused people"*
-- Links: Terms · Privacy · Refund Policy · GitHub
-- Payment icons: Visa, MC, Apple Pay, BTC, ETH, USDC
-- Copyright: `© 2026 GiBlok. All rights reserved.`
 
 ---
 

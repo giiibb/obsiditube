@@ -1,0 +1,1 @@
+Environment: Windows using Git Bash (sh). Use standard POSIX syntax (&&) for command chaining. Do NOT force ';' as it executes the second command even if the first fails.

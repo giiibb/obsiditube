@@ -15,3 +15,17 @@ wheels/
 .env*.local
 .agent/
 .vscode/
+
+# Local Settings
+.gemini/settings.json
+.zed/settings.json
+
+
+# Release Docs
+Docs/release-checklist.md
+
+
+# Deno Cleanup
+.deno/
+import_map.json
+

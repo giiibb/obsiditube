@@ -27,15 +27,34 @@ def safe_filename(name: str, playlist_id: str) -> str:
     return name or f"playlist - {playlist_id}"
 
 
-def make_card(playlist_id: str, index: int, video_id: str, title: str) -> str:
-    title = title.replace('"', '\\"')
-    # NOTE: fetching description is not necessary for this a todo tracker.
-    # NOTE: we can fetch using asyncio if we wanted
+def make_card(
+    playlist_id: str, 
+    index: int, 
+    video_id: str, 
+    title: str,
+    duration: str = "",
+    views: str = "",
+    publish_date: str = ""
+) -> str:
+    """
+    Generates an Obsidian cardlink block with extra metadata.
+    """
+    t = title.replace('"', '\\"')
+    
+    # Build metadata string
+    meta_parts = []
+    if duration: meta_parts.append(f"**{duration}**")
+    if views: meta_parts.append(views)
+    if publish_date: meta_parts.append(publish_date)
+    metadata_line = " • ".join(meta_parts)
+    
+    prefix = f"{index}. [ ] {metadata_line} " if metadata_line else f"{index}. [ ] "
+    
     return dedent(f"""
-    {index}. [ ] **"{title}"**
+    {prefix}**"{t}"**
     ```cardlink
     url: https://www.youtube.com/watch?v={video_id}&list={playlist_id}&index={index}
-    title: "{title}"
+    title: "{t}"
     host: www.youtube.com
     favicon: https://m.youtube.com/static/favicon.ico
     image: https://i.ytimg.com/vi/{video_id}/hqdefault.jpg
@@ -43,19 +62,37 @@ def make_card(playlist_id: str, index: int, video_id: str, title: str) -> str:
     """).strip()
 
 
-def make_notion_card(playlist_id: str, index: int, video_id: str, title: str) -> str:
-    """Generate a Notion-compatible markdown card.
-
-    Produces two lines:
-      1. An image block — Notion fetches the YouTube thumbnail automatically.
-      2. A to-do checkbox with the numbered, bolded, hyperlinked title.
-
-    This is the maximum fidelity achievable via plain paste (no Notion API).
-    """
+def make_notion_card(
+    playlist_id: str, 
+    index: int, 
+    video_id: str, 
+    title: str,
+    duration: str = "",
+    views: str = "",
+    publish_date: str = ""
+) -> str:
+    """Generate a Notion-compatible markdown card with metadata."""
     url = f"https://www.youtube.com/watch?v={video_id}&list={playlist_id}&index={index}"
     thumb = f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"
     safe_title = title.replace("[", "\\[").replace("]", "\\]")
-    return f"![{safe_title}]({thumb})\n- [ ] [{index}. **{safe_title}**]({url})"
+    meta = f" ({duration})" if duration else ""
+    return f"![{safe_title}]({thumb})\n- [ ] [**{index}. {safe_title}**{meta}]({url})"
+
+
+def generate_yaml_properties(metadata: dict) -> str:
+    """Generates Obsidian YAML frontmatter from playlist metadata."""
+    yaml = dedent(f"""
+    ---
+    title: "{metadata.get('title', '').replace('"', '\\"')}"
+    author: "{metadata.get('author', '').replace('"', '\\"')}"
+    video_count: {metadata.get('video_count', 0)}
+    view_count: "{metadata.get('view_count', '')}"
+    last_updated: "{metadata.get('last_updated', '')}"
+    description: "{metadata.get('description', '').replace('"', '\\"').replace('\\n', ' ')}"
+    playlist_url: "https://www.youtube.com/playlist?list={metadata.get('id', '')}"
+    ---
+    """).strip()
+    return yaml
 
 
 @app.command()
@@ -116,12 +153,41 @@ def main(
             )
         )
 
-        title = utils.get_nested_item(
-            ytInitialData,
-            "metadata",
-            "playlistMetadataRenderer",
-            "title",
-        )
+        # Extract Playlist Metadata
+        title = utils.get_nested_item(ytInitialData, "metadata", "playlistMetadataRenderer", "title")
+        
+        # Get Sidebar Info for YAML
+        try:
+            sidebar_primary = utils.get_nested_item(
+                ytInitialData, "sidebar", "playlistSidebarRenderer", "items", 
+                utils.ListExactlyOneChildDictKey, "playlistSidebarPrimaryInfoRenderer"
+            )
+            description = sidebar_primary.get("description", {}).get("simpleText", "")
+            stats = sidebar_primary.get("stats", [])
+            video_count_text = stats[0].get("runs", [{}])[0].get("text", "0") if len(stats) > 0 else "0"
+            view_count = stats[1].get("simpleText", "") if len(stats) > 1 else ""
+            last_updated = "".join([r.get("text", "") for r in stats[2].get("runs", [])]) if len(stats) > 2 else ""
+        except Exception:
+            description, video_count_text, view_count, last_updated = "", "0", "", ""
+
+        # Get Author
+        try:
+            author = utils.get_nested_item(
+                ytInitialData, "header", "playlistHeaderRenderer", "ownerText", "runs", 
+                utils.ListExactlyOne, "text"
+            )
+        except Exception:
+            author = ""
+
+        playlist_metadata = {
+            "id": playlist_id,
+            "title": title,
+            "author": author,
+            "description": description,
+            "video_count": int(''.join(filter(str.isdigit, video_count_text)) or 0),
+            "view_count": view_count,
+            "last_updated": last_updated
+        }
 
     typer.secho(f"TITLE: {title}", fg=typer.colors.BRIGHT_YELLOW)
 
@@ -156,58 +222,56 @@ def main(
         "playlistVideoListRenderer",
         "contents",
     )
-    continuationItemRenderer_found: bool = False
+    
     cards: list[str] = []
-    for video_index, content in enumerate(contents, start=1):
+    video_index = 1
+
+    for content in contents:
         continuationItemRenderer = content.get("continuationItemRenderer")
-        if continuationItemRenderer_found:
-            raise ValueError(
-                "continuationItemRenderer can only occure at max 1 time and it should be at last."
+        if continuationItemRenderer is not None:
+            # Note: The CLI currently doesn't fetch metadata for continuations as deeply
+            # but we pass what we have.
+            continuation_videos = fetch_continuation(
+                session,
+                playlist_id,
+                continuation_token=utils.get_nested_item(
+                    continuationItemRenderer,
+                    "continuationEndpoint",
+                    "commandExecutorCommand",
+                    "commands",
+                    utils.ListExactlyOneChildDictKey,
+                    "continuationCommand",
+                    "token",
+                ),
+                video_index=video_index,
             )
-        elif continuationItemRenderer is not None:
-            continuationItemRenderer_found = True
-            cards.extend(
-                map(
-                    lambda video_info: make_card(
-                        playlist_id=video_info["playlist_id"],
-                        index=video_info["index"],
-                        video_id=video_info["video_id"],
-                        title=video_info["title"],
-                    ),
-                    fetch_continuation(
-                        session,
-                        playlist_id,
-                        continuation_token=utils.get_nested_item(
-                            continuationItemRenderer,
-                            "continuationEndpoint",
-                            "commandExecutorCommand",
-                            "commands",
-                            utils.ListExactlyOneChildDictKey,
-                            "continuationCommand",
-                            "token",
-                        ),
-                        video_index=video_index,
-                    ),
-                )
-            )
+            for v in continuation_videos:
+                cards.append(make_card(playlist_id, v["index"], v["video_id"], v["title"]))
+                video_index += 1
         else:
-            playlistVideoRenderer = content["playlistVideoRenderer"]
-            video_id = playlistVideoRenderer["videoId"]
-            card = make_card(
+            pvr = content["playlistVideoRenderer"]
+            video_id = pvr["videoId"]
+            v_title = utils.get_nested_item(pvr, "title", "runs", utils.ListExactlyOne, "text")
+            
+            # Extract Video Metadata
+            duration = pvr.get("lengthText", {}).get("simpleText", "")
+            v_stats = pvr.get("videoInfo", {}).get("runs", [])
+            v_views = v_stats[0].get("text", "") if len(v_stats) > 0 else ""
+            v_date = v_stats[2].get("text", "") if len(v_stats) > 2 else ""
+
+            cards.append(make_card(
                 playlist_id=playlist_id,
                 index=video_index,
                 video_id=video_id,
-                title=utils.get_nested_item(
-                    playlistVideoRenderer,
-                    "title",
-                    "runs",
-                    utils.ListExactlyOne,
-                    "text",
-                ),
-            )
-            cards.append(card)
+                title=v_title,
+                duration=duration,
+                views=v_views,
+                publish_date=v_date
+            ))
+            video_index += 1
 
-    result = "\n".join(cards)
+    # Final Result with YAML
+    result = generate_yaml_properties(playlist_metadata) + "\n\n" + "\n".join(cards)
 
     if stdout:
         typer.echo(result)

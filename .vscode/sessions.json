@@ -43,14 +43,6 @@
                     ]
                 }
             ]
-        ],
-        "saved-session": [
-            {
-                "name": "connect",
-                "commands": [
-                    ""
-                ]
-            }
         ]
     }
 }

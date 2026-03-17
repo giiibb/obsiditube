@@ -1,59 +1,64 @@
-import React from "react";
-import { Youtube } from "lucide-react";
-import Link from "next/link";
+import React from 'react';
+
+export const metadata = {
+  title: 'Refund Policy | ObsidiTube',
+  description: 'Refund Policy for ObsidiTube.',
+};
 
 export default function RefundPolicy() {
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary/30 py-20 px-4">
-      <div className="max-w-3xl mx-auto space-y-12">
-        <div className="flex items-center gap-2.5">
-          <Youtube className="h-6 w-6 text-primary" />
-          <span className="font-bold tracking-tight text-lg">
-            Obsidi<span className="text-primary">Tube</span>
-          </span>
+    <div className="min-h-screen bg-background text-foreground py-16 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-3xl mx-auto prose prose-invert prose-orange">
+        <h1 className="text-4xl font-bold mb-8">Refund Policy</h1>
+        <p className="text-sm text-muted-foreground mb-8">Last Updated: March 17, 2026</p>
+
+        <p>
+          Thank you for purchasing ObsidiTube Pro. We want to ensure you have a great experience with our tool. 
+          Please read this policy carefully regarding refunds for our digital product.
+        </p>
+
+        <h2>1. 14-Day Money-Back Guarantee</h2>
+        <p>
+          We stand behind the quality of ObsidiTube. If you are not completely satisfied with your purchase, 
+          we offer a <strong>14-day money-back guarantee</strong> for all purchases made via fiat currency (credit card/PayPal).
+        </p>
+        <p>
+          If you experience technical issues that we cannot resolve, or if the tool does not meet your expectations, 
+          you may request a full refund within 14 days of your original purchase date.
+        </p>
+
+        <h2>2. How to Request a Refund</h2>
+        <p>To request a refund, please follow these steps:</p>
+        <ol>
+          <li>Email our support team at <strong>support@giblok.com</strong>.</li>
+          <li>Include the email address you used to make the purchase and your Order ID or License Key.</li>
+          <li>(Optional) Let us know why you are requesting a refund so we can improve the product.</li>
+        </ol>
+        <p>We aim to process all refund requests within 3 business days.</p>
+
+        <h2>3. Exceptions and Non-Refundable Purchases</h2>
+        <ul>
+          <li><strong>Cryptocurrency Purchases:</strong> Due to the nature of blockchain transactions and network fees, purchases made via cryptocurrency (NOWPayments) are generally <strong>non-refundable</strong>. Please test the free version of the app thoroughly before purchasing with crypto.</li>
+          <li><strong>After 14 Days:</strong> Refund requests submitted after the 14-day window will not be granted.</li>
+          <li><strong>Abuse of Policy:</strong> We reserve the right to deny a refund if we detect abuse of this policy (e.g., purchasing, downloading massive amounts of data, and immediately refunding).</li>
+        </ul>
+
+        <h2>4. License Revocation</h2>
+        <p>
+          Upon the issuance of a refund, your ObsidiTube Pro License Key will be immediately revoked and deactivated. 
+          Your account will revert to the Free Tier limits (10 videos per playlist).
+        </p>
+
+        <h2>5. Contact Us</h2>
+        <p>
+          If you have any questions about our refund policy, please reach out to us at:
+          <br />
+          <strong>Email:</strong> <a href="mailto:support@giblok.com" className="text-primary hover:underline">support@giblok.com</a>
+        </p>
+
+        <div className="mt-12 pt-8 border-t border-white/10">
+          <a href="/" className="text-primary hover:underline font-medium">← Back to ObsidiTube</a>
         </div>
-        
-        <header className="space-y-4">
-          <h1 className="text-4xl font-extrabold tracking-tight">Refund Policy</h1>
-          <p className="text-muted-foreground italic">Last Updated: March 17, 2026</p>
-        </header>
-
-        <section className="space-y-6 prose prose-invert max-w-none text-muted-foreground">
-          <p>
-            We want you to be happy with ObsidiTube Pro. Because this is a digital product with a lifetime license, we have a clear refund policy.
-          </p>
-
-          <h2 className="text-xl font-bold text-white">1. 14-Day Money Back Guarantee</h2>
-          <p>
-            If you are not satisfied with ObsidiTube Pro, you can request a full refund within **14 days** of your purchase. No questions asked.
-          </p>
-
-          <h2 className="text-xl font-bold text-white">2. Eligibility</h2>
-          <p>
-            To be eligible for a refund, you must provide your license key and the email address used for the purchase.
-          </p>
-
-          <h2 className="text-xl font-bold text-white">3. Processing Refunds</h2>
-          <p>
-            Refunds for fiat payments (Creem.io) will be processed back to your original payment method. For cryptocurrency payments, refunds will be issued in the original currency or its current USD equivalent at our discretion.
-          </p>
-
-          <h2 className="text-xl font-bold text-white">4. After Refund</h2>
-          <p>
-            Once a refund is processed, your license key will be permanently deactivated in our systems.
-          </p>
-
-          <h2 className="text-xl font-bold text-white">5. Contact Us</h2>
-          <p>
-            To request a refund, please email support@giblok.com with your order details.
-          </p>
-        </section>
-
-        <footer className="pt-12 border-t border-white/5">
-          <Link href="/" className="text-primary hover:underline font-medium flex items-center gap-2">
-            ← Back to Home
-          </Link>
-        </footer>
       </div>
     </div>
   );

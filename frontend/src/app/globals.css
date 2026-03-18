@@ -84,37 +84,24 @@
 }
 
 .dark {
-  --background: oklch(0.13 0.01 25);
+  --background: oklch(0.12 0.01 25);
   --foreground: oklch(0.97 0.02 30);
-  --card: oklch(0.16 0.02 25);
+  --card: oklch(0.15 0.02 25 / 0.4);
   --card-foreground: oklch(0.97 0.02 30);
-  --popover: oklch(0.16 0.02 25);
+  --popover: oklch(0.15 0.02 25 / 0.6);
   --popover-foreground: oklch(0.97 0.02 30);
   --primary: oklch(0.65 0.15 35);
-  --primary-foreground: oklch(0.13 0.01 25);
-  --secondary: oklch(0.22 0.03 25);
+  --primary-foreground: oklch(0.12 0.01 25);
+  --secondary: oklch(0.20 0.03 25 / 0.3);
   --secondary-foreground: oklch(0.97 0.02 30);
-  --muted: oklch(0.22 0.03 25);
+  --muted: oklch(0.20 0.03 25 / 0.3);
   --muted-foreground: oklch(0.7 0.02 30);
-  --accent: oklch(0.25 0.05 30);
+  --accent: oklch(0.23 0.05 30 / 0.4);
   --accent-foreground: oklch(0.97 0.02 30);
   --destructive: oklch(0.6 0.15 20);
-  --border: oklch(0.3 0.03 25);
-  --input: oklch(0.25 0.03 25);
+  --border: oklch(0.3 0.03 25 / 0.2);
+  --input: oklch(0.23 0.03 25 / 0.3);
   --ring: oklch(0.65 0.15 35);
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
-  --sidebar: oklch(0.16 0.02 25);
-  --sidebar-foreground: oklch(0.97 0.02 30);
-  --sidebar-primary: oklch(0.65 0.15 35);
-  --sidebar-primary-foreground: oklch(0.13 0.01 25);
-  --sidebar-accent: oklch(0.25 0.05 30);
-  --sidebar-accent-foreground: oklch(0.97 0.02 30);
-  --sidebar-border: oklch(0.3 0.03 25);
-  --sidebar-ring: oklch(0.65 0.15 35);
 }
 
 @layer base {
@@ -122,9 +109,56 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground relative min-h-screen overflow-x-hidden antialiased;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: url("/banner.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0.05;
+    z-index: -2;
+    pointer-events: none;
+  }
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at 50% 50%, transparent 0%, var(--background) 90%);
+    z-index: -1;
+    pointer-events: none;
   }
   html {
-    @apply font-sans;
+    @apply font-sans scroll-smooth;
   }
+}
+
+main {
+  /* Prominent fade effect that stays relative to the viewport top (below header) */
+  mask-image: linear-gradient(to bottom, 
+    transparent 0rem, 
+    transparent 1rem,
+    black 6rem, 
+    black calc(100% - 6rem), 
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(to bottom, 
+    transparent 0rem, 
+    transparent 1rem,
+    black 6rem, 
+    black calc(100% - 6rem), 
+    transparent 100%
+  );
+  mask-attachment: fixed;
+  -webkit-mask-attachment: fixed;
+  
+  /* Add padding top to ensure content doesn't start hidden under the mask */
+  padding-top: 1rem;
+}
+
+.glass-card {
+  @apply bg-card/40 backdrop-blur-2xl border border-white/5 shadow-2xl;
 }

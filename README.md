@@ -3,7 +3,7 @@
 **Turn any YouTube playlist into Obsidian checklist cards — instantly.**
 
 > **Forked from** [thefcraft/youtube-playlist-to-obsidian-cards](https://github.com/thefcraft/youtube-playlist-to-obsidian-cards)  
-> ObsidiTube wraps the original CLI in a full-stack web dashboard with a modern UI, private playlist support, rendered card preview, and one-click download.
+> ObsidiTube wraps the original CLI in a full-stack web dashboard with a modern 2026 glassmorphism UI, private playlist support, rendered card preview, dynamic OG images, robust recursive video extraction, and one-click download.
 
 ---
 
@@ -29,11 +29,16 @@ Each card:
 
 ---
 
-## 🏗 Architecture
+## 🏗 Architecture (Dual Backend)
+
+ObsidiTube operates in two distinct modes depending on the environment:
+
+1. **Local Mode (Python FastAPI)**: Unlimited usage, no license required, no Redis dependency. Runs locally on your machine.
+2. **Cloud Mode (Next.js TypeScript)**: Deployed on Vercel Edge/Serverless. Features a 10-video free tier limit, Upstash Redis 1-hour caching, and integrated license verification via webhooks.
 
 ```
 obsiditube/
-├── api.py              # FastAPI backend — POST /api/convert
+├── api.py              # Local FastAPI backend — POST /api/convert
 ├── main.py             # Original CLI entry point (kept intact)
 ├── dev.py              # Dev launcher: runs backend + frontend concurrently
 ├── src/
@@ -44,12 +49,21 @@ obsiditube/
 └── frontend/           # Next.js 15 + Shadcn UI dashboard
     └── src/
         ├── app/
-        │   ├── page.tsx        # Main dashboard (URL input, results, preview/code toggle)
-        │   ├── layout.tsx      # Root layout, fonts, dark mode
-        │   └── globals.css     # Tailwind v4 theme, dark palette with pastel red/orange
+        │   ├── page.tsx        # Main dashboard (Glassmorphism 2026 UI)
+        │   ├── layout.tsx      # Root layout, fonts, dark mode, OG meta
+        │   ├── globals.css     # Tailwind v4 theme, OKLCH colors, dynamic scroll fade
+        │   └── api/
+        │       ├── convert/route.ts       # TS port of Python logic with Redis Cache & recursive extraction
+        │       ├── og/route.tsx           # Dynamic Open Graph image generation (@vercel/og)
+        │       ├── license/validate/route.ts # License key validation
+        │       └── webhooks/              # Creem (Fiat) & NOWPayments (Crypto) auto-provisioning
+        ├── lib/
+        │   ├── redis.ts           # Upstash Redis client
+        │   └── license-manager.ts # Key generation & Resend email delivery
         └── components/
-            ├── ObsidianCardPreview.tsx  # Renders Obsidian cardlink blocks as visual cards
-            └── NotionCardPreview.tsx   # Renders Notion export as thumbnail cards (feature branch)
+            ├── ObsidianCardPreview.tsx  # Renders Obsidian cardlink blocks
+            ├── NotionCardPreview.tsx    # Renders Notion export cards
+            └── PaywallModal.tsx         # Pro upgrade modal
 ```
 
 ---
@@ -82,7 +96,7 @@ uv run python dev.py
 ```
 
 This starts:
-- **FastAPI backend** on `http://localhost:8000`
+- **FastAPI backend** on `http://localhost:8000` (Unlimited, no license needed)
 - **Next.js frontend** on `http://localhost:3000`
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
@@ -93,7 +107,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 **Live app:** [obsiditube.vercel.app](https://obsiditube.vercel.app)
 
-> ⚠️ **The Vercel deployment hosts the frontend only.** The conversion is done by a local FastAPI backend (`uv run python dev.py`). If you're just browsing the UI online, you'll need to run the backend locally to actually convert playlists — see [Quick Start](#-quick-start-local-dev) above.
+> ⚠️ **Cloud Deployment Restrictions:** The Vercel deployment uses the TypeScript Next.js backend, which includes a **10-video limit** for the free tier and a 1-hour Redis cache. To bypass limits without purchasing a Pro license, run the app locally using the Python backend.
 
 ---
 
@@ -102,10 +116,9 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 To convert a private playlist:
 
 1. Open YouTube in your browser and log in
-2. Press `F12` → Network tab → refresh the page
-3. Click on any `youtube.com` request
-4. Find the `cookie:` header → copy the entire value
-5. In ObsidiTube, click **"Private playlist? Click here"** and paste your cookies
+2. Press `F12` → Console tab
+3. Paste `copy(document.cookie); console.log('✅ Cookies copied!')` and press Enter
+4. In ObsidiTube, click **"Private playlist? Click here"** and paste your cookies
 
 ---
 
@@ -113,13 +126,14 @@ To convert a private playlist:
 
 | Feature | Description |
 |---|---|
-| 🔍 **Auto clipboard detect** | Automatically detects a YouTube playlist URL on page focus |
-| ⚡ **Auto-generate on paste** | Starts generating as soon as a valid playlist URL is entered |
-| 👁 **Preview / Code toggle** | Preview renders cards visually; Code shows raw markdown |
-| 🃏 **Card renderer** | Thumbnails, checkboxes, titles, favicon, and host — click to open video |
-| 📥 **Smart download** | Filename: `ObsidiTube_PLAYLIST_Playlist_by_CHANNELNAME.md` |
-| 🔒 **Private support** | Cookie-based auth with step-by-step extraction guide |
-| 📋 **Notion export** | Switch to Notion mode for copy-paste-ready markdown with thumbnails |
+| 🎨 **2026 UI/UX Aesthetic** | Stunning glassmorphism, dynamic scroll fades, and OKLCH color spaces. |
+| 🔍 **Robust Video Extraction** | Recursive JSON walking ensures no videos are missed, regardless of YouTube UI structure. |
+| ⚡ **1-Hour Caching** | Vercel deployment caches successful conversions in Upstash Redis for extreme speed. |
+| 📸 **Dynamic OG Images** | Beautiful, dynamically generated social sharing cards via `@vercel/og`. |
+| 👁 **Preview / Code toggle** | Preview renders cards visually; Code shows raw markdown. |
+| 📥 **Smart download** | Export as Markdown (`.md`), CSV, or JSON. |
+| 🔒 **Private support** | Cookie-based auth with a step-by-step extraction guide. |
+| 📋 **Notion export** | Switch to Notion mode for copy-paste-ready markdown with thumbnails. |
 
 ---
 
@@ -170,9 +184,9 @@ When pasted into a Notion page:
 
 ## ⚠️ Limitations
 
-- Uses YouTube's internal (undocumented) API — may break if YouTube changes their page structure
-- Descriptions are not fetched (intentionally — not needed for a todo tracker)
-- Private playlists require manual cookie extraction
+- Uses YouTube's internal (undocumented) API — may break if YouTube changes their page structure (though recursive search mitigates this).
+- Descriptions are not fetched (intentionally — not needed for a todo tracker).
+- Private playlists require manual cookie extraction.
 
 ---
 

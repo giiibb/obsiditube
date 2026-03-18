@@ -30,7 +30,7 @@ export default function RefundPolicy() {
         <h2>2. How to Request a Refund</h2>
         <p>To request a refund, please follow these steps:</p>
         <ol>
-          <li>Email our support team at <strong>support@giblok.com</strong>.</li>
+          <li>Email our support team at <strong>giblok@tuta.io</strong>.</li>
           <li>Include the email address you used to make the purchase and your Order ID or License Key.</li>
           <li>(Optional) Let us know why you are requesting a refund so we can improve the product.</li>
         </ol>
@@ -53,7 +53,7 @@ export default function RefundPolicy() {
         <p>
           If you have any questions about our refund policy, please reach out to us at:
           <br />
-          <strong>Email:</strong> <a href="mailto:support@giblok.com" className="text-primary hover:underline">support@giblok.com</a>
+          <strong>Email:</strong> <a href="mailto:giblok@tuta.io" className="text-primary hover:underline">giblok@tuta.io</a>
         </p>
 
         <div className="mt-12 pt-8 border-t border-white/10">

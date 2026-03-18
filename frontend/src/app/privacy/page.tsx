@@ -81,7 +81,7 @@ export default function PrivacyPolicy() {
         <p>
           If you have any questions about this Privacy Policy or our data practices, please contact us at:
           <br />
-          <strong>Email:</strong> <a href="mailto:support@giblok.com" className="text-primary hover:underline">support@giblok.com</a>
+          <strong>Email:</strong> <a href="mailto:giblok@tuta.io" className="text-primary hover:underline">giblok@tuta.io</a>
         </p>
 
         <div className="mt-12 pt-8 border-t border-white/10">

@@ -75,7 +75,7 @@ export default function TermsOfService() {
         <p>
           If you have any questions, support requests, or issues regarding these Terms, please contact us at:
           <br />
-          <strong>Email:</strong> <a href="mailto:support@giblok.com" className="text-primary hover:underline">support@giblok.com</a>
+          <strong>Email:</strong> <a href="mailto:giblok@tuta.io" className="text-primary hover:underline">giblok@tuta.io</a>
         </p>
         <p>We aim to respond to all inquiries within 3 business days.</p>
         

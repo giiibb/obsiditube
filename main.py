@@ -13,6 +13,9 @@ from src.fetch import fetch_continuation
 from src import utils
 from pathlib import Path
 
+RE_SAFE_CHARS = re.compile(r"[^\w\s.-]")
+RE_SPACES = re.compile(r"\s+")
+
 app = typer.Typer(
     pretty_exceptions_enable=False,
     pretty_exceptions_short=False,
@@ -22,8 +25,8 @@ app = typer.Typer(
 
 def safe_filename(name: str, playlist_id: str) -> str:
     """Make a safe filename from playlist title."""
-    name = re.sub(r"[^\w\s.-]", "", name)
-    name = re.sub(r"\s+", "_", name).strip("_")
+    name = RE_SAFE_CHARS.sub("", name)
+    name = RE_SPACES.sub("_", name).strip("_")
     return name or f"playlist - {playlist_id}"
 
 

@@ -39,10 +39,14 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Allow all origins so the Next.js dev server and Vercel frontend can reach this.
+# Restrict origins to the local Next.js dev server and the production Vercel frontend.
+# Using specific origins instead of ["*"] is required when allow_credentials=True.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://obsiditube.vercel.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
